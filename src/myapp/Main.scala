@@ -1,0 +1,545 @@
+/*
+ * Copyright 2011 Kazuyoshi Aizawa
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package myapp
+
+import scala.swing._
+import javax.swing.event.HyperlinkEvent
+import javax.swing.event.HyperlinkListener
+import scala.swing.event._
+import scala.xml._
+import javax.swing.ImageIcon
+import javax.swing.JEditorPane
+import javax.swing.SwingUtilities
+import scala.actors._
+import scala.actors.Actor._
+import java.awt.Desktop
+import java.awt.image.BufferedImage
+import java.net.URI
+import scala.collection.mutable._
+import java.util.StringTokenizer
+import java.util.prefs.Preferences
+import javax.imageio._
+import scala.collection._
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.awt.Color
+import org.apache.http.auth._
+import twitter4j.TwitterException
+import twitter4j.TwitterFactory
+import twitter4j.User
+import twitter4j.ResponseList
+import twitter4j.Status
+import twitter4j.Twitter
+import twitter4j.auth.AccessToken
+import twitter4j.auth.RequestToken
+
+//TLの種類（home,user,everyone)
+case class UpdateType(name:String)
+case class AccountInfo(var email:String, var pass:String)
+
+/**
+ * kotsubu - trival GUI twitter client utilizing twitter4j.
+ *
+ * Main Window
+ */
+object Main extends SimpleSwingApplication {
+  val version = "1.9"  // バージョン
+  var currentUpdateType = UpdateType("home")  // デフォルトは home timeline
+  val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
+  val accountInfo = new AccountInfo(prefs.get("email", ""),"")  // アカウント情報
+  val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
+  val mainFrameInitialWidth = 600
+  val mainFrameInitialHeight = 600
+  val operationPanelWidth = 60 // 操作ボタン（Retweet/Reply)カラムの幅
+  val userIconSize = 50 // ユーザアイコン大きさ
+  val timeLineInitialHeight = 60 // 各メッセージの高さ
+  val defAutoUpdateEnabled = true // 自動アップデートのデフォルト設定
+  val defHomeUpdateInterval = 30 // 自動アップデート間隔のデフォルト(sec)
+  val defMyUpdateInterval = 30 // 自動アップデート間隔のデフォルト(sec)
+  val defEveryoneUpdateInterval = 30 // 自動アップデート間隔のデフォルト(sec)
+  val defProgressBarEnabled = false // プログレスバーの有無のデフォルト
+  val defNumTimeLines = 20 // 取得するタイムライン数のデフォルト
+  val defOAuthConsumerKey = "PaWXdbUBNZGJVuDqxFY8wg"
+  val defConsumerSecret = "fD9SO5gUNYP9AuhCSYuob9inQU0jKl5bPMuGj1QRkFo"
+
+
+  /////////////  更新ボタン  ///////////////////////
+  //
+  //　home TL 更新用ボタン
+  val updateButton = new Button("update")
+
+  // 更新ボタン用パネル
+  val updateButtonPanel = new BoxPanel(Orientation.Horizontal){
+    contents += updateButton
+
+  }
+
+  ////////  タイムライン  ////////////////////////
+  //
+  // TL用 スクロールペイン
+  val homeTlScrollPane = new TlScrollPane()
+  val myTlScrollPane = new TlScrollPane()
+  val everyoneTlScrollPane = new TlScrollPane()
+  val mentionTlScrollPane = new TlScrollPane()  
+
+  // TL 用パネル
+  val tabbedPane = new TabbedPane {
+    pages += new TabbedPane.Page("Home", homeTlScrollPane)
+    pages += new TabbedPane.Page("My tweets", myTlScrollPane)
+    pages += new TabbedPane.Page("Mention", mentionTlScrollPane)        
+    pages += new TabbedPane.Page("Everyone", everyoneTlScrollPane)
+  }
+
+  //////// メッセージ送信パネル  ///////////////////////////
+  //
+  //　メッセージ送信ボタン
+  val postButton = new Button {
+    text = "Post "
+  }
+  // Clear ボタン
+  val clearButton = new Button {
+    text = "Clear"
+  }
+  // 送信ボタン用パネル
+  val postButtonPanel = new BoxPanel (Orientation.Vertical){
+    contents += postButton
+    contents += clearButton
+  }
+  // メッセージ用テキストフィールド
+  val messageTextArea = new TextArea{
+    lineWrap = true
+    text = "What's on your mind?"
+    border = Swing.EmptyBorder(2, 2, 2, 2)
+  }
+  // 送信用パネルのスクロールペイン
+  val postMessageScrollPane = new ScrollPane{
+    scala.swing.ScrollPane
+    this.horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+    viewportView = messageTextArea
+    border = Swing.BeveledBorder(Swing.Lowered)
+  }
+  // kotusu アイコン。
+  val kotsubuIconLabel = new Label
+  val originalImage = javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/kotsubu.png"))
+  val smallImage = originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH)        
+  kotsubuIconLabel.icon = new javax.swing.ImageIcon(smallImage)  
+  // メッセージ送信用パネル
+  val postMessagePanel = new BoxPanel(Orientation.Horizontal){
+    contents += kotsubuIconLabel
+    contents += postMessageScrollPane
+    contents += postButtonPanel
+  }
+
+  /////////// ステータスパネル  ///////////
+  //
+  // プログレスバー
+  val progressbar = new ProgressBar {
+    labelPainted=true
+    label = "No timeline fetched yet"
+  }
+  val progressBarPanel = new BoxPanel (Orientation.Horizontal){
+    contents += progressbar
+    preferredSize = new Dimension(30,30)
+  }
+  val statusPanel = new BoxPanel (Orientation.Horizontal ){
+    contents += progressBarPanel
+  }
+
+  ///////////  メインパネル  /////////////////////
+  val mainPanel = new BoxPanel(Orientation.Vertical){
+    contents += postMessagePanel
+    contents += tabbedPane
+    contents += updateButtonPanel
+    contents += statusPanel
+    border = Swing.EmptyBorder(10, 10, 10, 10)
+  }
+
+  // リツイート/リプライアイコン
+  val  replyIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_turn_left.png")))
+  val  rtIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_refresh.png")))
+
+  /**
+   * メインウィンドウ
+   */
+  def top = new MainFrame {
+    title = "kotsubu"
+
+    contents = mainPanel
+
+    listenTo(updateButton,postButton,clearButton,mainPanel,tabbedPane.selection)
+
+    // GUIイベントに対応したハンドラの登録
+    reactions += {
+      case ButtonClicked(`updateButton`) => actor{
+          updateTimeLine(currentUpdateType)
+        }
+      case ButtonClicked(`postButton`) => postMessageAndClear(messageTextArea)
+      case ButtonClicked(`clearButton`) => SwingUtilities invokeLater {
+          messageTextArea.text_=("")
+        }
+      case SelectionChanged(`tabbedPane`) => tabbedPane.selection.page.title match {
+          case "Home" => currentUpdateType_= (UpdateType("home"))
+          case "My tweets" => currentUpdateType_=(UpdateType("users"))
+          case "Everyone" => currentUpdateType_=(UpdateType("public"))
+          case "Mention" => currentUpdateType_=(UpdateType("mention"))            
+        }
+    }
+
+    //メニューバー
+    menuBar = new MenuBar{
+      contents += new Menu("File"){
+        contents += new MenuItem(Action("Preferences"){
+            new PreferencesDialog().visible_=(true)
+          })
+        contents += new MenuItem( Action("Quit"){System.exit(0)})        
+      }
+      contents += new Menu("Help") {
+        contents += new MenuItem(Action ("About"){
+            new AboutDialog(version).visible_=(true)
+          })}
+    }
+    size = new Dimension(mainFrameInitialWidth, mainFrameInitialHeight)
+    minimumSize = size
+
+    // 自動更新用バックグラウンドスレッドの開始
+    UpdateDaemon.startDaemon()
+  }
+
+  /**
+   * 暗黙的に関数を Runnable に変換する。 SwingUtilities.invokeLater で利用する。
+   */
+  implicit def functionToRunable[T](x: => T) : Runnable = new Runnable() { def run = x }
+
+  /**
+   * TimeLine を更新する。
+   * @param updateType アップデートするTLのタイプ
+   */
+  def updateTimeLine(updateType:UpdateType) :Unit = {
+    var tlScrollPane:TlScrollPane = null
+    var timezone = ""
+
+    //プログレスバー開始
+    if(prefs.getBoolean("progressBarEnabled", defProgressBarEnabled)){
+      progressbar.indeterminate_=(true)
+    }
+    progressbar.label_=("Updating " + updateType.name + " timeline ...")
+
+    if(prefs.get("accessToken", "").isEmpty){
+      val twitter:Twitter = new TwitterFactory().getInstance()
+      twitter.setOAuthConsumer(prefs.get("OAuthConsumerKey", defOAuthConsumerKey), prefs.get("consumerSecret", defConsumerSecret));
+      val requestToken:RequestToken  = twitter.getOAuthRequestToken()
+
+      Desktop.getDesktop().browse(new URI(requestToken.getAuthorizationURL()))
+      var accessToken:AccessToken = null;
+      scala.swing.Dialog.showMessage(title="confirm", message="Click OK")
+      try{
+        accessToken = twitter.getOAuthAccessToken();
+      } catch {
+        case ex:TwitterException => {
+            if(401 == ex.getStatusCode()){
+              System.out.println("Unable to get the access token.");
+            }else{
+              ex.printStackTrace();
+            }
+          }
+          return
+      }
+      prefs.put("accessToken", accessToken.getToken)
+      prefs.put("accessTokenSecret", accessToken.getTokenSecret)
+    }
+    val accessToken:AccessToken = new AccessToken(prefs.get("accessToken", ""),prefs.get("accessTokenSecret", ""))
+    val twitter:Twitter = new TwitterFactory().getInstance()
+    twitter.setOAuthConsumer(prefs.get("OAuthConsumerKey", defOAuthConsumerKey), prefs.get("consumerSecret", defConsumerSecret));
+    twitter.setOAuthAccessToken(accessToken)
+
+    var statuses:ResponseList[Status] = null
+    // 取ってくるTLの種類によって created_at のタイムゾーンが違う・・・
+    updateType match {
+      case t if t == UpdateType("home") => {
+          tlScrollPane = Main.homeTlScrollPane 
+          statuses = twitter.getHomeTimeline()          
+        }
+      case t if t == UpdateType("users")   => {
+          tlScrollPane = Main.myTlScrollPane 
+          statuses = twitter.getUserTimeline()                    
+        }
+      case t if t == UpdateType("public")  => {
+          tlScrollPane = Main.everyoneTlScrollPane 
+          statuses = twitter.getPublicTimeline()                    
+        }
+      case t if t == UpdateType("mention")  => {
+          tlScrollPane = Main.mentionTlScrollPane 
+          statuses = twitter.getMentions()                    
+        }        
+    }
+
+//    val user:User = twitter.verifyCredentials()
+
+    /*
+     try {
+     for (status <- statuses.toArray(new Array[Status](0))) {
+     System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
+     }
+
+     } catch  {
+     case ex:TwitterException => {
+     ex.printStackTrace()
+     SwingUtilities invokeLater {
+     progressbar.label_=("Updating " + updateType.name + " timeline failed.")
+     }
+     return
+     }
+     }
+     */
+
+    val timeLineList = new BoxPanel(Orientation.Vertical){
+      background = Color.white
+    }
+    val simpleFormat = new SimpleDateFormat("MM/dd HH:mm")
+    val friendsPage = "http://twitter.com/#!/"
+
+    // 取得した Status タグをひとつづつ処理する
+    for (status <- statuses.toArray(new Array[Status](0))) {
+      val user = status.getUser
+
+      // アイコン。まずはキャッシュから探してなければサーバから取ってくる
+      val iconLabel = new Label
+      iconLabel.icon = imageIconMap get (user.getScreenName) match {
+        case Some(status) => status
+        case None => loadIconAndStore(user)
+      }
+
+      val createdDate = status.getCreatedAt
+      val username = user.getScreenName
+
+      //
+      // Tweet 情報カラムのユーザ名からユーザページへのリンクを生成する
+      //
+      val sbname:StringBuffer = new StringBuffer()
+      sbname.append("<B><a href=\"" + friendsPage + username + "\">" + username + "</a></B>")
+      val usernameTextPane = new EditorPane(){
+        background = Color.white
+        contentType = ("text/html")        
+        text = sbname.toString()
+        editable = false
+      }
+      usernameTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
+      usernameTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
+          def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
+            if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
+              Desktop.getDesktop().browse(new URI(e.getDescription()));
+            } }
+        });
+      // Tweet情報パネル
+      val tweetInfoPanel = new BorderPanel(){
+        import BorderPanel.Position._
+        background = Color.white
+        add(usernameTextPane, West)
+        add(new TextArea(simpleFormat.format(createdDate)), East)
+      }
+
+      // リツイートボタン
+      val retweetButton = new Button {
+        tooltip = "Retweet"
+        icon = rtIcon
+      }
+
+      // リプライボタン
+      val replyButton = new Button {
+        tooltip = " Reply "
+        icon = replyIcon
+      }
+
+      // 操作ボタンパネル
+      val operationPanel = new BorderPanel(){
+        background = Color.white
+        import BorderPanel.Position._
+        add(replyButton, North)
+        add(retweetButton, South)
+        background_=(java.awt.Color.WHITE)
+        border = Swing.EmptyBorder(0,0,5,0)
+      }
+
+      // GUIイベントに対応したハンドラの登録
+      operationPanel.reactions += {
+        case ButtonClicked(`replyButton`) =>  SwingUtilities invokeLater {
+            messageTextArea.text_=("@" + username + " ")
+          }
+        case ButtonClicked(`retweetButton`) => SwingUtilities invokeLater {
+            messageTextArea.text_=("RT @" + username + " " +  status.getText)
+          }
+      }
+
+      operationPanel.listenTo(replyButton, retweetButton)
+
+      // @ から始まるユーザ名をチェックする正規表現オブジェクトを生成
+      val namefilter = """@([^:.]*)""".r
+      // URL かどうかをチェックする正規表現オブジェクトを生成
+      val urlfilter = """([a-z]+)://(.*)""".r
+      // 全角スペースで終わる　URL をチェックするを正規表現オブジェクト
+      val urlfilterFullWidthSpace = """([a-z]+)://([^　]*)([　]*)(.*)""".r
+      // 全角スペースで終わる ユーザ名をチェックするを正規表現オブジェクト
+      val namefilterFullWidthSpace = """@([^　]*)([　]*)(.*)""".r
+      /*
+       * メッセージをスペース区切りで分割し、 @ から始まるユーザ名と URL を探して HTML
+       * の A タグを使ってリンクテキストを生成する。
+       */
+      val tokenizer:StringTokenizer = new StringTokenizer(status.getText)
+      val sb:StringBuffer = new StringBuffer()
+      while (tokenizer.hasMoreTokens()) {
+        tokenizer.nextToken() match {
+          case urlfilter(protocol, url)
+            =>  {sb.append("<a href=\"" + protocol + "://" + url + "\">"
+                           + protocol + "://" + url + "</a>")}
+          case namefilter(name)
+            => {sb.append("<a href=\"" + friendsPage + name + "\">@" + name + "</a>")}
+          case word => {sb.append(word)}
+            //TODL: 全角スペース付きのURL,名前の場合を追加
+        }
+        sb.append(" ")
+      }
+      val messageTextPane = new EditorPane(){
+        background = Color.white
+        contentType = "text/html"
+        editable = false
+        text = sb.toString()
+        // TODO: TLの高さを自動計算. 幅の計算方法の変更
+        // -20 という数値は Windows 上で実行咲いた際のごさを埋めるためのもの。ただしい計算方法を考える必要がある。
+        // preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
+        preferredSize = new Dimension(tlScrollPane.size.width - userIconSize - operationPanelWidth - 20, timeLineInitialHeight)
+      }
+      messageTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
+      messageTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
+          def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
+            if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
+              Desktop.getDesktop().browse(new URI(e.getDescription()));
+            } }
+        });
+
+      // アイコンとメッセージを一つにまとめる。
+      val timeLine = new BorderPanel (){
+        background = Color.white
+        import BorderPanel.Position._
+        add(new BorderPanel (){
+            background = Color.white
+            border = Swing.EmptyBorder(2, 0, 2, 0)
+            add(iconLabel, North)
+          }, West)
+        add(new BorderPanel (){
+            border = Swing.EmptyBorder(0, 5, 0, 5)
+            background = Color.white
+            add(tweetInfoPanel, North)
+            add(messageTextPane, Center)
+            add(operationPanel, East)
+          }, Center)
+      }
+      timeLineList.contents += timeLine
+      timeLineList.contents += new Separator{
+        background = Color.white
+      }
+    }
+
+    // 以下は functionToRunable で暗黙的に Runnable に変換される。
+    SwingUtilities invokeLater {
+      //取得したタイムラインで既存のものを置き換える
+      tlScrollPane.viewportView_=(timeLineList)
+    }
+    //プログレスバー停止
+    if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
+      progressbar.indeterminate_=(false)
+    }
+    progressbar.label_= (updateType.name + " timeline updated on "
+                         + simpleFormat.format(new Date()))
+  }
+
+  /**
+   * 新いい actor を生成し、actor TextField の内容を postMessage() に渡し、
+   * サーバにポストしてもらう。その後、TextField は空にする。
+   * @param tf postするメッセージを含むTextField
+   */
+  def postMessageAndClear(tf:TextArea) :Unit ={
+    // アクターでバックグラウンドでポストする
+    //println("postMessageAcnClear called")
+    val msg = tf.text
+    SwingUtilities invokeLater tf.text_=("")
+    actor {
+      //プログレスバー開始
+      if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
+        progressbar.indeterminate_=(true)
+      }
+      progressbar.label_=("Posting message ...")
+
+      //println("msg: " + msg)
+      try {
+        //postMessage(accountInfo, msg)
+      } catch {
+        case ex: Exception => {
+            SwingUtilities invokeLater {
+              progressbar.label_=("Post message failed: "+ ex.getMessage)
+            }}
+      }
+
+      //プログレスバー停止
+      if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
+        progressbar.indeterminate_=(false)
+      }
+      progressbar.label_=("Message posted")
+
+      actor(updateTimeLine(currentUpdateType))
+    }
+  }
+
+  /**
+   * ユーザアイコンをサーバから読み込みマップに追加する。
+   * @param サーバから返却されてきた1メッセージ分のノード
+   * @return 追加されたアイコン
+   *
+   * TODO: icon マップのエントリ数の制限が設定されていない。危険は低いと思うが上限値を持つべき。
+   */
+  def loadIconAndStore(user:User) :javax.swing.ImageIcon = {
+    val username = user.getScreenName
+    var image:ImageIcon = null
+    var originalImage:BufferedImage = null
+
+    
+    // Twitter に格納されているオリジナルのアイコンを読み込む
+    try {
+      originalImage = javax.imageio.ImageIO.read(user.getProfileImageURL)
+    } catch {
+      case ex: IIOException =>  println("Can't read icon from " + user.getProfileImageURL.toString + " Use default icon.")
+    }
+
+    if(originalImage == null){
+      // もしユーザアイコンが見つけられなかったらデフォルトアイコンを表示
+      image = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/default.png")))
+    } else {
+      // オリジナルのアイコンから指定サイズ(デフォルトは50x50)のイメージを作り出す。
+      val smallImage = originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH)
+      image = new javax.swing.ImageIcon(smallImage)
+    }
+    // 作った新しいアイコンをラベルのアイコンとして設定
+
+    imageIconMap += (username -> image)
+    return imageIconMap(username)
+  }
+}
+
+class TlScrollPane extends ScrollPane{
+  this.horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+  preferredSize = new Dimension(Main.mainFrameInitialWidth, Main.mainFrameInitialHeight)
+  //minimumSize = new Dimension(Main.mainFrameInitialWidth/2, Main.mainFrameInitialHeight/2)
+}
