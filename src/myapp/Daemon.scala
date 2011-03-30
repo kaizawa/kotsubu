@@ -23,7 +23,7 @@ import myapp._
 /**
  * kotsubu - Twitter Client
  *
- * 自動アップデートスレッド(アクター）
+ * Actor auto update thread
  */
 object UpdateDaemon extends {
 
@@ -33,7 +33,7 @@ object UpdateDaemon extends {
       def tlChecker(updatetype:UpdateType) {
         val updateActor = self
         actor {
-          // オートアップデートがオフになっていたらスレッド停止する
+          // stop thread if auto-update is disabled
           if(Main.prefs.getBoolean("autoUpdateEnabled", Main.defAutoUpdateEnabled)
              == false){ return }
           updateActor ! updatetype

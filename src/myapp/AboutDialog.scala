@@ -29,8 +29,8 @@ import scala.actors.Actor._
 import scala.collection.mutable._
 
 /**
- * About ダイアログ
- * @param preferences 設定情報
+ * About Dialog
+ * @param preferences configuration
  */
 class AboutDialog(version:String)  extends scala.swing.Dialog() {
   val okButton = new Button ("OK")
@@ -67,7 +67,7 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
   }
 
   /**
-   * ダイヤログを閉じる
+   * Close dialog
    */
   def okAndClose () :Unit = {
     closeOperation

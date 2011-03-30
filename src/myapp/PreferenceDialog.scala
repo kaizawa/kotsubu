@@ -23,8 +23,7 @@ import scala.actors.Actor._
 import scala.collection.mutable._
 
 /**
- * 設定情報変更ダイアログ
- * @param preferences 設定情報
+ * Preferences configuration dialog
  */
 class PreferencesDialog()  extends scala.swing.Dialog() {
   title = "Preferences"  

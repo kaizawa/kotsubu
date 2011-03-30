@@ -47,9 +47,7 @@ import twitter4j.Twitter
 import twitter4j.auth.AccessToken
 import twitter4j.auth.RequestToken
 
-//TLの種類（home,user,everyone)
 case class UpdateType(name:String)
-case class AccountInfo(var email:String, var pass:String)
 
 /**
  * kotsubu - trival GUI twitter client utilizing twitter4j.
@@ -57,22 +55,21 @@ case class AccountInfo(var email:String, var pass:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "1.9"  // バージョン
-  var currentUpdateType = UpdateType("home")  // デフォルトは home timeline
+  val version = "0.1.0"  // version
+  var currentUpdateType = UpdateType("home")  // default time line
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
-  val accountInfo = new AccountInfo(prefs.get("email", ""),"")  // アカウント情報
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
   val mainFrameInitialWidth = 600
   val mainFrameInitialHeight = 600
-  val operationPanelWidth = 60 // 操作ボタン（Retweet/Reply)カラムの幅
-  val userIconSize = 50 // ユーザアイコン大きさ
-  val timeLineInitialHeight = 60 // 各メッセージの高さ
-  val defAutoUpdateEnabled = true // 自動アップデートのデフォルト設定
-  val defHomeUpdateInterval = 30 // 自動アップデート間隔のデフォルト(sec)
-  val defMyUpdateInterval = 30 // 自動アップデート間隔のデフォルト(sec)
-  val defEveryoneUpdateInterval = 30 // 自動アップデート間隔のデフォルト(sec)
-  val defProgressBarEnabled = false // プログレスバーの有無のデフォルト
-  val defNumTimeLines = 20 // 取得するタイムライン数のデフォルト
+  val operationPanelWidth = 60 // button size
+  val userIconSize = 50 // Size of user icon
+  val timeLineInitialHeight = 60 // Height of time line
+  val defAutoUpdateEnabled = true // Default value for auto-update
+  val defHomeUpdateInterval = 30 // Default interval of auto-update
+  val defMyUpdateInterval = 30 // Default interval of auto-update
+  val defEveryoneUpdateInterval = 30 // Default interval of auto-update
+  val defProgressBarEnabled = false // Enable/Disable progress bar.
+  val defNumTimeLines = 20 // Number of tweets to be shown.
   val defOAuthConsumerKey = "PaWXdbUBNZGJVuDqxFY8wg"
   val defConsumerSecret = "fD9SO5gUNYP9AuhCSYuob9inQU0jKl5bPMuGj1QRkFo"
 
@@ -287,25 +284,6 @@ object Main extends SimpleSwingApplication {
         }        
     }
 
-//    val user:User = twitter.verifyCredentials()
-
-    /*
-     try {
-     for (status <- statuses.toArray(new Array[Status](0))) {
-     System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
-     }
-
-     } catch  {
-     case ex:TwitterException => {
-     ex.printStackTrace()
-     SwingUtilities invokeLater {
-     progressbar.label_=("Updating " + updateType.name + " timeline failed.")
-     }
-     return
-     }
-     }
-     */
-
     val timeLineList = new BoxPanel(Orientation.Vertical){
       background = Color.white
     }
@@ -482,16 +460,12 @@ object Main extends SimpleSwingApplication {
         progressbar.indeterminate_=(true)
       }
       progressbar.label_=("Posting message ...")
-
-      //println("msg: " + msg)
-      try {
-        //postMessage(accountInfo, msg)
-      } catch {
-        case ex: Exception => {
-            SwingUtilities invokeLater {
-              progressbar.label_=("Post message failed: "+ ex.getMessage)
-            }}
-      }
+      
+      val accessToken:AccessToken = new AccessToken(prefs.get("accessToken", ""),prefs.get("accessTokenSecret", ""))
+      val twitter:Twitter = new TwitterFactory().getInstance()
+      twitter.setOAuthConsumer(prefs.get("OAuthConsumerKey", defOAuthConsumerKey), prefs.get("consumerSecret", defConsumerSecret));
+      twitter.setOAuthAccessToken(accessToken)    
+      val status = twitter.updateStatus(msg)
 
       //プログレスバー停止
       if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
@@ -541,5 +515,4 @@ object Main extends SimpleSwingApplication {
 class TlScrollPane extends ScrollPane{
   this.horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
   preferredSize = new Dimension(Main.mainFrameInitialWidth, Main.mainFrameInitialHeight)
-  //minimumSize = new Dimension(Main.mainFrameInitialWidth/2, Main.mainFrameInitialHeight/2)
 }
