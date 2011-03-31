@@ -55,7 +55,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.0"  // version
+  val version = "0.1.1"  // version
   var currentUpdateType = UpdateType("home")  // default time line
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
@@ -205,7 +205,7 @@ object Main extends SimpleSwingApplication {
         contents += new MenuItem( Action("Quit"){System.exit(0)})        
       }
       contents += new Menu("Help") {
-        contents += new MenuItem(Action ("About"){
+        contents += new MenuItem(Action ("About kotsubu"){
             new AboutDialog(version).visible_=(true)
           })}
     }

@@ -38,12 +38,18 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
 
   modal = true
 
-  val sourceCodeUrl = "https://github.com/kaizawa/kotsubu"
+  val sourceCodeUrl = "https://github.com/kaizawa/kotsubu/wiki"
+  val twitter4jUrl = "http://twitter4j.org/"
   val linkTextPane = new EditorPane()
   linkTextPane.contentType_=("text/html")
   val sb:StringBuffer = new StringBuffer()
-  sb.append("kotsubu ver " + version + "<br><br>")
-  sb.append("Source code is available <a href=\"" + sourceCodeUrl + "\">here</a>.")
+  sb.append("<div align=\"CENTER\"><B><h2>kotsubu</h2></B>")  
+  sb.append("kotsubu ver " + version + "<br>")
+  sb.append("<a href=\"" + sourceCodeUrl + "\">" + sourceCodeUrl +"</a><br><br>")
+  sb.append("This program uses Twitter4J.<br>")
+  sb.append("Copyright (c) 2007-2011, Yusuke Yamamoto All rights reserved.<br>")
+  sb.append(" <a href=\"" + twitter4jUrl + "\"> " + twitter4jUrl + "</a></DIV>")
+
   linkTextPane.text_=(sb.toString())
   linkTextPane.editable_=(false)
   linkTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
@@ -75,7 +81,7 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
     close
   }
 
-  size = new Dimension(270,140)
+  size = new Dimension(450,260)
   this.resizable_=(false)
 }
 
