@@ -40,15 +40,22 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
 
   val sourceCodeUrl = "https://github.com/kaizawa/kotsubu/wiki"
   val twitter4jUrl = "http://twitter4j.org/"
+  val scalaUrl = "http://www.scala-lang.org/"
   val linkTextPane = new EditorPane()
   linkTextPane.contentType_=("text/html")
   val sb:StringBuffer = new StringBuffer()
   sb.append("<div align=\"CENTER\"><B><h2>kotsubu</h2></B>")  
   sb.append("kotsubu ver " + version + "<br>")
+  sb.append("Copyright (c) 2011 Kazuyoshi Aizawa All rights reserved.<br>")  
   sb.append("<a href=\"" + sourceCodeUrl + "\">" + sourceCodeUrl +"</a><br><br>")
-  sb.append("This program uses Twitter4J.<br>")
-  sb.append("Copyright (c) 2007-2011, Yusuke Yamamoto All rights reserved.<br>")
-  sb.append(" <a href=\"" + twitter4jUrl + "\"> " + twitter4jUrl + "</a></DIV>")
+  sb.append("This program uses following libraries.<br><br>")
+  sb.append("Twitter4J<br>")
+  sb.append("Copyright (c) 2007, Yusuke Yamamoto All rights reserved.<br>")
+  sb.append("<a href=\"" + twitter4jUrl + "\"> " + twitter4jUrl + "</a><br><br>")
+  sb.append("Scala<br>")  
+  sb.append("Copyright (c) 2002-2011 EPFL, Lausanne, unless otherwise specified.<br>")
+  sb.append("All rights reserved.<br>")
+  sb.append("<a href=\"" + scalaUrl + "\"> " + scalaUrl + "</a></DIV>")  
 
   linkTextPane.text_=(sb.toString())
   linkTextPane.editable_=(false)
@@ -81,7 +88,7 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
     close
   }
 
-  size = new Dimension(450,260)
+  size = new Dimension(510,350)
   this.resizable_=(false)
 }
 
