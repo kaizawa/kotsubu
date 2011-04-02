@@ -54,7 +54,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.5"  // version
+  val version = "0.1.6"  // version
   var currentUpdateType = UpdateType("home")  // default time line
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
@@ -225,7 +225,7 @@ object Main extends SimpleSwingApplication {
 
       Desktop.getDesktop().browse(new URI(requestToken.getAuthorizationURL()))
       var accessToken:AccessToken = null;
-      scala.swing.Dialog.showMessage(title="confirm", message="After you accepted , click OK")
+      scala.swing.Dialog.showMessage(title="confirm", message="After you allowed , click OK")
       try{
         accessToken = twitter.getOAuthAccessToken();
       } catch {
@@ -268,7 +268,10 @@ object Main extends SimpleSwingApplication {
           }        
       }
     } catch {
-      case ex:Exception => ex.printStackTrace
+      case ex:Exception => {
+          println("Updating " + updateType.name + " timeline failed.")
+          return;
+      }
     }
 
     val timeLineList = new BoxPanel(Orientation.Vertical){
