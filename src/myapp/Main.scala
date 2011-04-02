@@ -54,7 +54,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.6"  // version
+  val version = "0.1.7"  // version
   var currentUpdateType = UpdateType("home")  // default time line
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
@@ -192,7 +192,7 @@ object Main extends SimpleSwingApplication {
     minimumSize = size
     
     //Following line is used for OAuth test
-    prefs.put("accessToken", "")    
+    //prefs.put("accessToken", "")    
     
     // Star background auto-update thread.
     UpdateDaemon.startDaemon()
@@ -287,7 +287,7 @@ object Main extends SimpleSwingApplication {
       // Icon. Load from server, if it is not cached yet.
       val iconLabel = new Label
       iconLabel.icon = imageIconMap get (user.getScreenName) match {
-        case Some(status) => status
+        case Some(icon) => icon
         case None => loadIconAndStore(user)
       }
 
@@ -466,7 +466,7 @@ object Main extends SimpleSwingApplication {
    * @param user user entry.
    * @return added icon
    *
-   * TODO: icon entries is unlimited... it causes OOME
+   * TODO: icon cache mechanism is too bad..
    */
   def loadIconAndStore(user:User) :javax.swing.ImageIcon = {
     val username = user.getScreenName
@@ -489,6 +489,11 @@ object Main extends SimpleSwingApplication {
       // Set size to 50x50
       val smallImage = originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH)
       image = new javax.swing.ImageIcon(smallImage)
+    }
+    // Clear all cached icon, if it exceed 1,000....
+    if(imageIconMap.size > 1000){
+      System.out.println("Clear imageIconMap.")
+      imageIconMap.clear
     }
     // Set icon as a label's icon.
     imageIconMap += (username -> image)
