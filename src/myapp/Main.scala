@@ -55,7 +55,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.2"  // version
+  val version = "0.1.3"  // version
   var currentUpdateType = UpdateType("home")  // default time line
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
@@ -72,28 +72,21 @@ object Main extends SimpleSwingApplication {
   val defNumTimeLines = 20 // Number of tweets to be shown.
   val defOAuthConsumerKey = "PaWXdbUBNZGJVuDqxFY8wg"
   val defConsumerSecret = "fD9SO5gUNYP9AuhCSYuob9inQU0jKl5bPMuGj1QRkFo"
+  val  replyIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_turn_left.png")))
+  val  rtIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_refresh.png")))  
 
 
-  /////////////  更新ボタン  ///////////////////////
-  //
-  //　home TL 更新用ボタン
+  /////////////  Panel for update button  //////////////
   val updateButton = new Button("update")
-
-  // 更新ボタン用パネル
   val updateButtonPanel = new BoxPanel(Orientation.Horizontal){
     contents += updateButton
-
   }
 
-  ////////  タイムライン  ////////////////////////
-  //
-  // TL用 スクロールペイン
+  ////////  Panel for timeline ////////////////////////
   val homeTlScrollPane = new TlScrollPane()
   val myTlScrollPane = new TlScrollPane()
   val everyoneTlScrollPane = new TlScrollPane()
   val mentionTlScrollPane = new TlScrollPane()  
-
-  // TL 用パネル
   val tabbedPane = new TabbedPane {
     pages += new TabbedPane.Page("Home", homeTlScrollPane)
     pages += new TabbedPane.Page("My tweets", myTlScrollPane)
@@ -101,49 +94,39 @@ object Main extends SimpleSwingApplication {
     pages += new TabbedPane.Page("Everyone", everyoneTlScrollPane)
   }
 
-  //////// メッセージ送信パネル  ///////////////////////////
-  //
-  //　メッセージ送信ボタン
+  //////// Panel for post message  /////////
   val postButton = new Button {
     text = "Post "
   }
-  // Clear ボタン
   val clearButton = new Button {
     text = "Clear"
   }
-  // 送信ボタン用パネル
   val postButtonPanel = new BoxPanel (Orientation.Vertical){
     contents += postButton
     contents += clearButton
   }
-  // メッセージ用テキストフィールド
   val messageTextArea = new TextArea{
     lineWrap = true
     text = "What's on your mind?"
     border = Swing.EmptyBorder(2, 2, 2, 2)
   }
-  // 送信用パネルのスクロールペイン
   val postMessageScrollPane = new ScrollPane{
     scala.swing.ScrollPane
     this.horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
     viewportView = messageTextArea
     border = Swing.BeveledBorder(Swing.Lowered)
   }
-  // kotusu アイコン。
   val kotsubuIconLabel = new Label
   val originalImage = javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/kotsubu.png"))
   val smallImage = originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH)        
   kotsubuIconLabel.icon = new javax.swing.ImageIcon(smallImage)  
-  // メッセージ送信用パネル
   val postMessagePanel = new BoxPanel(Orientation.Horizontal){
     contents += kotsubuIconLabel
     contents += postMessageScrollPane
     contents += postButtonPanel
   }
 
-  /////////// ステータスパネル  ///////////
-  //
-  // プログレスバー
+  ///////// Status Panel  ///////////
   val progressbar = new ProgressBar {
     labelPainted=true
     label = "No timeline fetched yet"
@@ -156,7 +139,7 @@ object Main extends SimpleSwingApplication {
     contents += progressBarPanel
   }
 
-  ///////////  メインパネル  /////////////////////
+  ///////////  Main Panel /////////////////////
   val mainPanel = new BoxPanel(Orientation.Vertical){
     contents += postMessagePanel
     contents += tabbedPane
@@ -165,12 +148,9 @@ object Main extends SimpleSwingApplication {
     border = Swing.EmptyBorder(10, 10, 10, 10)
   }
 
-  // リツイート/リプライアイコン
-  val  replyIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_turn_left.png")))
-  val  rtIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_refresh.png")))
 
   /**
-   * メインウィンドウ
+   * Main window of kotsubu
    */
   def top = new MainFrame {
     title = "kotsubu"
@@ -179,7 +159,7 @@ object Main extends SimpleSwingApplication {
 
     listenTo(updateButton,postButton,clearButton,mainPanel,tabbedPane.selection)
 
-    // GUIイベントに対応したハンドラの登録
+    // Register handler for GUI event
     reactions += {
       case ButtonClicked(`updateButton`) => actor{
           updateTimeLine(currentUpdateType)
@@ -196,7 +176,7 @@ object Main extends SimpleSwingApplication {
         }
     }
 
-    //メニューバー
+    // Menu bar
     menuBar = new MenuBar{
       contents += new Menu("File"){
         contents += new MenuItem(Action("Preferences"){
@@ -212,24 +192,25 @@ object Main extends SimpleSwingApplication {
     size = new Dimension(mainFrameInitialWidth, mainFrameInitialHeight)
     minimumSize = size
 
-    // 自動更新用バックグラウンドスレッドの開始
+    // Star background auto-update thread.
     UpdateDaemon.startDaemon()
   }
 
   /**
-   * 暗黙的に関数を Runnable に変換する。 SwingUtilities.invokeLater で利用する。
+   * Function implictly convert function into Runnable.
+   * This function is used by SingUtilities.invokeLater
    */
   implicit def functionToRunable[T](x: => T) : Runnable = new Runnable() { def run = x }
 
   /**
-   * TimeLine を更新する。
-   * @param updateType アップデートするTLのタイプ
+   * Updte timeline 
+   * @param updateType Timeline type to be updated.
    */
   def updateTimeLine(updateType:UpdateType) :Unit = {
     var tlScrollPane:TlScrollPane = null
     var timezone = ""
 
-    //プログレスバー開始
+    // Start progress bar, if needed.
     if(prefs.getBoolean("progressBarEnabled", defProgressBarEnabled)){
       progressbar.indeterminate_=(true)
     }
@@ -264,7 +245,6 @@ object Main extends SimpleSwingApplication {
     twitter.setOAuthAccessToken(accessToken)
 
     var statuses:ResponseList[Status] = null
-    // 取ってくるTLの種類によって created_at のタイムゾーンが違う・・・
     updateType match {
       case t if t == UpdateType("home") => {
           tlScrollPane = Main.homeTlScrollPane 
@@ -290,11 +270,11 @@ object Main extends SimpleSwingApplication {
     val simpleFormat = new SimpleDateFormat("MM/dd HH:mm")
     val friendsPage = "http://twitter.com/#!/"
 
-    // 取得した Status タグをひとつづつ処理する
+    // Process statuses one by one.
     for (status <- statuses.toArray(new Array[Status](0))) {
       val user = status.getUser
 
-      // アイコン。まずはキャッシュから探してなければサーバから取ってくる
+      // Icon. Load from server, if it is not cached yet.
       val iconLabel = new Label
       iconLabel.icon = imageIconMap get (user.getScreenName) match {
         case Some(status) => status
@@ -304,9 +284,7 @@ object Main extends SimpleSwingApplication {
       val createdDate = status.getCreatedAt
       val username = user.getScreenName
 
-      //
-      // Tweet 情報カラムのユーザ名からユーザページへのリンクを生成する
-      //
+      // Create link to user's page
       val sbname:StringBuffer = new StringBuffer()
       sbname.append("<B><a href=\"" + friendsPage + username + "\">" + username + "</a></B>")
       val usernameTextPane = new EditorPane(){
@@ -322,7 +300,7 @@ object Main extends SimpleSwingApplication {
               Desktop.getDesktop().browse(new URI(e.getDescription()));
             } }
         });
-      // Tweet情報パネル
+      // Information Panel 
       val tweetInfoPanel = new BorderPanel(){
         import BorderPanel.Position._
         background = Color.white
@@ -330,19 +308,19 @@ object Main extends SimpleSwingApplication {
         add(new TextArea(simpleFormat.format(createdDate)), East)
       }
 
-      // リツイートボタン
+      // ReTweet button
       val retweetButton = new Button {
         tooltip = "Retweet"
         icon = rtIcon
       }
 
-      // リプライボタン
+      // Reply button
       val replyButton = new Button {
         tooltip = " Reply "
         icon = replyIcon
       }
 
-      // 操作ボタンパネル
+      // Operational Panel
       val operationPanel = new BorderPanel(){
         background = Color.white
         import BorderPanel.Position._
@@ -352,7 +330,7 @@ object Main extends SimpleSwingApplication {
         border = Swing.EmptyBorder(0,0,5,0)
       }
 
-      // GUIイベントに対応したハンドラの登録
+      // Register hander for GUI event
       operationPanel.reactions += {
         case ButtonClicked(`replyButton`) =>  SwingUtilities invokeLater {
             messageTextArea.text_=("@" + username + " ")
@@ -364,13 +342,13 @@ object Main extends SimpleSwingApplication {
 
       operationPanel.listenTo(replyButton, retweetButton)
 
-      // @ から始まるユーザ名をチェックする正規表現オブジェクトを生成
+      // Regexp to check an user name start with @ char.
       val namefilter = """@([^:.]*)""".r
-      // URL かどうかをチェックする正規表現オブジェクトを生成
+      // Regexp to check if it is URL
       val urlfilter = """([a-z]+)://(.*)""".r
-      // 全角スペースで終わる　URL をチェックするを正規表現オブジェクト
+      // Regexp ended by full-width space
       val urlfilterFullWidthSpace = """([a-z]+)://([^　]*)([　]*)(.*)""".r
-      // 全角スペースで終わる ユーザ名をチェックするを正規表現オブジェクト
+      // Regexp ended by usernam
       val namefilterFullWidthSpace = """@([^　]*)([　]*)(.*)""".r
       /*
        * メッセージをスペース区切りで分割し、 @ から始まるユーザ名と URL を探して HTML
@@ -494,7 +472,8 @@ object Main extends SimpleSwingApplication {
     try {
       originalImage = javax.imageio.ImageIO.read(user.getProfileImageURL)
     } catch {
-      case ex: IIOException =>  println("Can't read icon from " + user.getProfileImageURL.toString + " Use default icon.")
+      case ex: IIOException => 
+        println("Can't read icon from " + user.getProfileImageURL.toString + ". Use default icon.")
     }
 
     if(originalImage == null){

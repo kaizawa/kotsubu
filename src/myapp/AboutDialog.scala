@@ -41,26 +41,32 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
   val sourceCodeUrl = "https://github.com/kaizawa/kotsubu/wiki"
   val twitter4jUrl = "http://twitter4j.org/"
   val scalaUrl = "http://www.scala-lang.org/"
-  val linkTextPane = new EditorPane()
-  linkTextPane.contentType_=("text/html")
+
+
   val sb:StringBuffer = new StringBuffer()
+  val sbLibs:StringBuffer = new StringBuffer()  
+  
   sb.append("<div align=\"CENTER\"><B><h2>kotsubu</h2></B>")  
   sb.append("kotsubu ver " + version + "<br>")
   sb.append("Copyright (c) 2011 Kazuyoshi Aizawa All rights reserved.<br>")  
   sb.append("<a href=\"" + sourceCodeUrl + "\">" + sourceCodeUrl +"</a><br><br>")
-  sb.append("This program uses following libraries.<br><br>")
-  sb.append("Twitter4J<br>")
-  sb.append("Copyright (c) 2007, Yusuke Yamamoto All rights reserved.<br>")
-  sb.append("<a href=\"" + twitter4jUrl + "\"> " + twitter4jUrl + "</a><br><br>")
-  sb.append("Scala<br>")  
-  sb.append("Copyright (c) 2002-2011 EPFL, Lausanne, unless otherwise specified.<br>")
-  sb.append("All rights reserved.<br>")
-  sb.append("<a href=\"" + scalaUrl + "\"> " + scalaUrl + "</a></DIV>")  
+  sb.append("This program uses Twitter4J and Scala.<br></div>")
+  sbLibs.append("<br>Twitter4J<br>")
+  sbLibs.append("Copyright (c) 2007, Yusuke Yamamoto All rights reserved.<br>")
+  sbLibs.append("<a href=\"" + twitter4jUrl + "\"> " + twitter4jUrl + "</a><br><br>")
+  sbLibs.append("Scala<br>")  
+  sbLibs.append("Copyright (c) 2002-2011 EPFL, Lausanne, unless otherwise specified.<br>")
+  sbLibs.append("All rights reserved.<br>")
+  sbLibs.append("<a href=\"" + scalaUrl + "\"> " + scalaUrl + "</a>")  
 
-  linkTextPane.text_=(sb.toString())
-  linkTextPane.editable_=(false)
-  linkTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
-  linkTextPane.background_=(UIManager.getColor("control")); // 背景色をウィンドウの背景色に合わせる
+  val linkTextPane = new EditorPane(){ 
+    contentType = "text/html"
+    text_=(sb.toString())
+    editable_=(false)
+    border = Swing.LineBorder(java.awt.Color.BLACK)
+    background_=(java.awt.Color.WHITE)    
+  }
+  linkTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)  
   linkTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
       def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
         if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
@@ -68,8 +74,24 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
         } }
     });
 
+  val linkTextPane4Libs = new EditorPane(){ 
+    contentType = "text/html"    
+    text_=(sbLibs.toString())
+    editable_=(false)
+    background_=(UIManager.getColor("control")); 
+  }
+  linkTextPane4Libs.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)  
+  linkTextPane4Libs.peer.addHyperlinkListener(new HyperlinkListener() {    
+      def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
+        if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
+          Desktop.getDesktop().browse(new URI(e.getDescription()));
+        } }
+    });  
+ 
+
   contents = new BoxPanel (Orientation.Vertical){
     contents += linkTextPane
+    contents +=linkTextPane4Libs
     contents += okButton
     border = Swing.EmptyBorder(10, 10, 10, 10)
   }
