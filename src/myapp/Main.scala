@@ -55,7 +55,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.3"  // version
+  val version = "0.1.4"  // version
   var currentUpdateType = UpdateType("home")  // default time line
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
@@ -191,7 +191,10 @@ object Main extends SimpleSwingApplication {
     }
     size = new Dimension(mainFrameInitialWidth, mainFrameInitialHeight)
     minimumSize = size
-
+    
+    //Following line is used for OAuth test
+    prefs.put("accessToken", "")    
+    
     // Star background auto-update thread.
     UpdateDaemon.startDaemon()
   }
@@ -223,7 +226,7 @@ object Main extends SimpleSwingApplication {
 
       Desktop.getDesktop().browse(new URI(requestToken.getAuthorizationURL()))
       var accessToken:AccessToken = null;
-      scala.swing.Dialog.showMessage(title="confirm", message="Click OK")
+      scala.swing.Dialog.showMessage(title="confirm", message="After you accepted , click OK")
       try{
         accessToken = twitter.getOAuthAccessToken();
       } catch {
@@ -245,23 +248,28 @@ object Main extends SimpleSwingApplication {
     twitter.setOAuthAccessToken(accessToken)
 
     var statuses:ResponseList[Status] = null
-    updateType match {
-      case t if t == UpdateType("home") => {
-          tlScrollPane = Main.homeTlScrollPane 
-          statuses = twitter.getHomeTimeline()          
-        }
-      case t if t == UpdateType("users")   => {
-          tlScrollPane = Main.myTlScrollPane 
-          statuses = twitter.getUserTimeline()                    
-        }
-      case t if t == UpdateType("public")  => {
-          tlScrollPane = Main.everyoneTlScrollPane 
-          statuses = twitter.getPublicTimeline()                    
-        }
-      case t if t == UpdateType("mention")  => {
-          tlScrollPane = Main.mentionTlScrollPane 
-          statuses = twitter.getMentions()                    
-        }        
+    
+    try {
+      updateType match {
+        case t if t == UpdateType("home") => {
+            tlScrollPane = Main.homeTlScrollPane 
+            statuses = twitter.getHomeTimeline()          
+          }
+        case t if t == UpdateType("users")   => {
+            tlScrollPane = Main.myTlScrollPane 
+            statuses = twitter.getUserTimeline()                    
+          }
+        case t if t == UpdateType("public")  => {
+            tlScrollPane = Main.everyoneTlScrollPane 
+            statuses = twitter.getPublicTimeline()                    
+          }
+        case t if t == UpdateType("mention")  => {
+            tlScrollPane = Main.mentionTlScrollPane 
+            statuses = twitter.getMentions()                    
+          }        
+      }
+    } catch {
+      case ex:Exception => ex.printStackTrace
     }
 
     val timeLineList = new BoxPanel(Orientation.Vertical){
@@ -350,10 +358,7 @@ object Main extends SimpleSwingApplication {
       val urlfilterFullWidthSpace = """([a-z]+)://([^　]*)([　]*)(.*)""".r
       // Regexp ended by usernam
       val namefilterFullWidthSpace = """@([^　]*)([　]*)(.*)""".r
-      /*
-       * メッセージをスペース区切りで分割し、 @ から始まるユーザ名と URL を探して HTML
-       * の A タグを使ってリンクテキストを生成する。
-       */
+      // Create a link
       val tokenizer:StringTokenizer = new StringTokenizer(status.getText)
       val sb:StringBuffer = new StringBuffer()
       while (tokenizer.hasMoreTokens()) {
@@ -364,7 +369,7 @@ object Main extends SimpleSwingApplication {
           case namefilter(name)
             => {sb.append("<a href=\"" + friendsPage + name + "\">@" + name + "</a>")}
           case word => {sb.append(word)}
-            //TODL: 全角スペース付きのURL,名前の場合を追加
+            //TODO: make it handle Full-Width space char
         }
         sb.append(" ")
       }
@@ -373,8 +378,8 @@ object Main extends SimpleSwingApplication {
         contentType = "text/html"
         editable = false
         text = sb.toString()
-        // TODO: TLの高さを自動計算. 幅の計算方法の変更
-        // -20 という数値は Windows 上で実行咲いた際のごさを埋めるためのもの。ただしい計算方法を考える必要がある。
+        // TODO: Consider the way of calculating height of timeline
+        // -20 is not good way...
         // preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
         preferredSize = new Dimension(tlScrollPane.size.width - userIconSize - operationPanelWidth - 20, timeLineInitialHeight)
       }
@@ -386,7 +391,7 @@ object Main extends SimpleSwingApplication {
             } }
         });
 
-      // アイコンとメッセージを一つにまとめる。
+      // Consolidate timeline and icon
       val timeLine = new BorderPanel (){
         background = Color.white
         import BorderPanel.Position._
@@ -409,12 +414,12 @@ object Main extends SimpleSwingApplication {
       }
     }
 
-    // 以下は functionToRunable で暗黙的に Runnable に変換される。
+    // Following call is implictly converted to Runnable by functionToRunable
     SwingUtilities invokeLater {
-      //取得したタイムラインで既存のものを置き換える
+      // Replace existing timeline
       tlScrollPane.viewportView_=(timeLineList)
     }
-    //プログレスバー停止
+    // Stop progress bar
     if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
       progressbar.indeterminate_=(false)
     }
@@ -423,17 +428,16 @@ object Main extends SimpleSwingApplication {
   }
 
   /**
-   * 新いい actor を生成し、actor TextField の内容を postMessage() に渡し、
-   * サーバにポストしてもらう。その後、TextField は空にする。
-   * @param tf postするメッセージを含むTextField
+   * Create new actor and post message
+   * 
+   * @param tf TextField which has message to post.
    */
   def postMessageAndClear(tf:TextArea) :Unit ={
-    // アクターでバックグラウンドでポストする
     //println("postMessageAcnClear called")
     val msg = tf.text
     SwingUtilities invokeLater tf.text_=("")
     actor {
-      //プログレスバー開始
+      // Start progress bar if enabled
       if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
         progressbar.indeterminate_=(true)
       }
@@ -445,7 +449,7 @@ object Main extends SimpleSwingApplication {
       twitter.setOAuthAccessToken(accessToken)    
       val status = twitter.updateStatus(msg)
 
-      //プログレスバー停止
+      // Stop progress bar
       if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
         progressbar.indeterminate_=(false)
       }
@@ -456,11 +460,11 @@ object Main extends SimpleSwingApplication {
   }
 
   /**
-   * ユーザアイコンをサーバから読み込みマップに追加する。
-   * @param サーバから返却されてきた1メッセージ分のノード
-   * @return 追加されたアイコン
+   * Add icons to Map 
+   * @param user user entry.
+   * @return added icon
    *
-   * TODO: icon マップのエントリ数の制限が設定されていない。危険は低いと思うが上限値を持つべき。
+   * TODO: icon entries is unlimited... it causes OOME
    */
   def loadIconAndStore(user:User) :javax.swing.ImageIcon = {
     val username = user.getScreenName
@@ -468,29 +472,32 @@ object Main extends SimpleSwingApplication {
     var originalImage:BufferedImage = null
 
     
-    // Twitter に格納されているオリジナルのアイコンを読み込む
+    // Read original icon stored in Twitter.
     try {
       originalImage = javax.imageio.ImageIO.read(user.getProfileImageURL)
     } catch {
-      case ex: IIOException => 
+      case ex: Exception => 
         println("Can't read icon from " + user.getProfileImageURL.toString + ". Use default icon.")
     }
 
     if(originalImage == null){
-      // もしユーザアイコンが見つけられなかったらデフォルトアイコンを表示
+      // Use default icon, if original icon is not found.
       image = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/default.png")))
     } else {
-      // オリジナルのアイコンから指定サイズ(デフォルトは50x50)のイメージを作り出す。
+      // Set size to 50x50
       val smallImage = originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH)
       image = new javax.swing.ImageIcon(smallImage)
     }
-    // 作った新しいアイコンをラベルのアイコンとして設定
-
+    // Set icon as a label's icon.
     imageIconMap += (username -> image)
     return imageIconMap(username)
   }
 }
 
+/**
+ * SclollPane for each Timeline.
+ * This ScrollPane exists for every Timeline Tab.
+ */
 class TlScrollPane extends ScrollPane{
   this.horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
   preferredSize = new Dimension(Main.mainFrameInitialWidth, Main.mainFrameInitialHeight)

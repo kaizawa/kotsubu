@@ -50,8 +50,8 @@ object UpdateDaemon extends {
       loop {
         react {
           case updatetype:UpdateType => {
-              updateTimeLine(updatetype)
-              tlChecker(updatetype)
+                updateTimeLine(updatetype)
+                tlChecker(updatetype)
             }
         }
       }

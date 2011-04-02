@@ -66,20 +66,14 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
   }
 
   /**
-   * 入力された設定ををセーブし、ダイヤログを閉じる
+   * Save new settings and close dialog
    */
   def saveAndClose () :Unit = {
     if(Main.prefs.getBoolean("autoUpdateEnabled", Main.defAutoUpdateEnabled)
        == false && autoUpdateCheckBox.selected == true){
-      // 自動更新用バックグラウンドスレッドの開始
-      // TODO: 既存スレッドの有無確認していない。autoUpdateEnable == false でも、まだ
-      // スレッドが存在するタイミングは存在し得る
+      // if auto-update is enabled, then start background update thread.
+      // TODO: should check the existance of background thread
       UpdateDaemon.startDaemon()
-    }
-
-    //この設定画面でプログレスバーの変更があったらメイン画面の方も変更しておく
-    if(Main.prefs.getBoolean("progressBarEnabled",
-                             Main.defProgressBarEnabled) != progressBarEnabledCheckBoxDialog.selected){
     }
 
     Main.prefs.putBoolean("autoUpdateEnabled", autoUpdateCheckBox.selected)
@@ -95,7 +89,7 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
   }
 
   /**
-   * 変更をキャンセルしダイヤログを閉じる
+   * Cancel and Close dialog
    */
   def cancelAndClose () :Unit = {
     closeOperation
