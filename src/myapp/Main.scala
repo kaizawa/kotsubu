@@ -37,7 +37,6 @@ import scala.collection._
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.awt.Color
-import org.apache.http.auth._
 import twitter4j.TwitterException
 import twitter4j.TwitterFactory
 import twitter4j.User
@@ -55,7 +54,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.4"  // version
+  val version = "0.1.5"  // version
   var currentUpdateType = UpdateType("home")  // default time line
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
