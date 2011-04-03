@@ -46,7 +46,7 @@ import twitter4j.Twitter
 import twitter4j.auth.AccessToken
 import twitter4j.auth.RequestToken
 
-case class UpdateType(name:String)
+case class UpdateType(name:String, interval:Int)
 
 /**
  * kotsubu - trival GUI twitter client utilizing twitter4j.
@@ -54,9 +54,9 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.8"  // version
-  var currentUpdateType = UpdateType("home")  // default time line
+  val version = "0.1.10"  // version
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
+  var currentUpdateType = UpdateType("home", prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval))  // default time line  
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
   val mainFrameInitialWidth = 600
   val mainFrameInitialHeight = 600
@@ -65,15 +65,15 @@ object Main extends SimpleSwingApplication {
   val timeLineInitialHeight = 60 // Height of time line
   val defAutoUpdateEnabled = true // Default value for auto-update
   val defHomeUpdateInterval = 30 // Default interval of auto-update
-  val defMyUpdateInterval = 30 // Default interval of auto-update
-  val defEveryoneUpdateInterval = 30 // Default interval of auto-update
+  val defMyUpdateInterval = 120 // Default interval of auto-update
+  val defEveryoneUpdateInterval = 120 // Default interval of auto-update
+  val defMentionUpdateInterval = 120 // Default interval of auto-update  
   val defProgressBarEnabled = false // Enable/Disable progress bar.
   val defNumTimeLines = 20 // Number of tweets to be shown.
   val defOAuthConsumerKey = "PaWXdbUBNZGJVuDqxFY8wg"
   val defConsumerSecret = "fD9SO5gUNYP9AuhCSYuob9inQU0jKl5bPMuGj1QRkFo"
-  val  replyIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_turn_left.png")))
-  val  rtIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_refresh.png")))  
-
+  val replyIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_turn_left.png")))
+  val rtIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("myapp/arrow_refresh.png")))  
 
   /////////////  Panel for update button  //////////////
   val updateButton = new Button("update")
@@ -168,10 +168,10 @@ object Main extends SimpleSwingApplication {
           messageTextArea.text_=("")
         }
       case SelectionChanged(`tabbedPane`) => tabbedPane.selection.page.title match {
-          case "Home" => currentUpdateType_= (UpdateType("home"))
-          case "My tweets" => currentUpdateType_=(UpdateType("users"))
-          case "Everyone" => currentUpdateType_=(UpdateType("public"))
-          case "Mention" => currentUpdateType_=(UpdateType("mention"))            
+          case "Home" => currentUpdateType_= (UpdateType("home", prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval)))
+          case "My tweets" => currentUpdateType_=(UpdateType("users", prefs.getInt("myUpdateInterval", Main.defMyUpdateInterval)))
+          case "Everyone" => currentUpdateType_=(UpdateType("public", prefs.getInt("everyoneUpdateInterval", Main.defEveryoneUpdateInterval)))
+          case "Mention" => currentUpdateType_=(UpdateType("mention", prefs.getInt("mentionUpdateInterval", Main.defMentionUpdateInterval)))            
         }
     }
 
@@ -250,19 +250,19 @@ object Main extends SimpleSwingApplication {
     
     try {
       updateType match {
-        case t if t == UpdateType("home") => {
+        case UpdateType("home", t) => {
             tlScrollPane = Main.homeTlScrollPane 
             statuses = twitter.getHomeTimeline()          
           }
-        case t if t == UpdateType("users")   => {
+        case UpdateType("users", t)   => {
             tlScrollPane = Main.myTlScrollPane 
             statuses = twitter.getUserTimeline()                    
           }
-        case t if t == UpdateType("public")  => {
+        case UpdateType("public", t)  => {
             tlScrollPane = Main.everyoneTlScrollPane 
             statuses = twitter.getPublicTimeline()                    
           }
-        case t if t == UpdateType("mention")  => {
+        case UpdateType("mention", t)  => {
             tlScrollPane = Main.mentionTlScrollPane 
             statuses = twitter.getMentions()                    
           }        

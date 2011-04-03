@@ -42,10 +42,10 @@ object UpdateDaemon extends {
         }
       }
 
-      tlChecker(UpdateType("users"))
-      tlChecker(UpdateType("public"))
-      tlChecker(UpdateType("home"))
-      tlChecker(UpdateType("mention"))      
+      tlChecker(UpdateType("users", prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval)))
+      tlChecker(UpdateType("public", prefs.getInt("myUpdateInterval", Main.defMyUpdateInterval)))
+      tlChecker(UpdateType("home", prefs.getInt("everyoneUpdateInterval", Main.defEveryoneUpdateInterval)))
+      tlChecker(UpdateType("mention", prefs.getInt("mentionUpdateInterval", Main.defMentionUpdateInterval)))      
 
       loop {
         react {

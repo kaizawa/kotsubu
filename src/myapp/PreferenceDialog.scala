@@ -33,17 +33,20 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     selected = Main.prefs.getBoolean("progressBarEnabled",Main.defProgressBarEnabled) }
   val homeUpdateIntervalTextField = new TextField (Main.prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval).toString)
   val myUpdateIntervalTextField = new TextField (Main.prefs.getInt("myUpdateInterval", Main.defMyUpdateInterval).toString)
+  val mentionUpdateIntervalTextField = new TextField (Main.prefs.getInt("mentionUpdateInterval", Main.defMentionUpdateInterval).toString)  
   val everyoneUpdateIntervalTextField = new TextField (Main.prefs.getInt("everyoneUpdateInterval", Main.defEveryoneUpdateInterval).toString)
   val numTimeLinesTextField = new TextField (Main.prefs.getInt("numTimeLines", Main.defNumTimeLines).toString)
   val okButton = new Button ("OK")
   val cancelButton = new Button("Cancel")
-  val intervalPanel = new GridPanel (4, 2){
+  val intervalPanel = new GridPanel (5, 2){
     contents += new Label("Home TL interval(sec): ")
     contents += homeUpdateIntervalTextField
     contents += new Label("My TL interval(sec): ")
     contents += myUpdateIntervalTextField
     contents += new Label("Everyone TL interval(sec): ")
     contents += everyoneUpdateIntervalTextField
+    contents += new Label("Mention TL interval(sec): ")
+    contents += mentionUpdateIntervalTextField    
     contents += new Label("Num timelines: ")
     contents += numTimeLinesTextField
   }
@@ -80,6 +83,7 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     Main.prefs.putInt("homeUpdateInterval", Integer.parseInt(homeUpdateIntervalTextField.text))
     Main.prefs.putInt("myUpdateInterval", Integer.parseInt(myUpdateIntervalTextField.text))
     Main.prefs.putInt("everyoneUpdateInterval", Integer.parseInt(everyoneUpdateIntervalTextField.text))
+    Main.prefs.putInt("mentionUpdateInterval", Integer.parseInt(mentionUpdateIntervalTextField.text))    
     Main.prefs.putBoolean("progressBarEnabled",progressBarEnabledCheckBoxDialog.selected)
     Main.prefs.putInt("numTimeLines", Integer.parseInt(numTimeLinesTextField.text))
 
@@ -97,6 +101,6 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     close
   }
 
-  size = new Dimension(310,250)
+//  size = new Dimension(400,250)
   this.resizable_=(false)
 }
