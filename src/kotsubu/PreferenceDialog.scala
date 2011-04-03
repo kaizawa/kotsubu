@@ -32,9 +32,9 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
   val progressBarEnabledCheckBoxDialog = new CheckBox("Enable Progress Bar") {
     selected = Main.prefs.getBoolean("progressBarEnabled",Main.defProgressBarEnabled) }
   val homeUpdateIntervalTextField = new TextField (Main.prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval).toString)
-  val myUpdateIntervalTextField = new TextField (Main.prefs.getInt("myUpdateInterval", Main.defMyUpdateInterval).toString)
+  val userUpdateIntervalTextField = new TextField (Main.prefs.getInt("userUpdateInterval", Main.defUserUpdateInterval).toString)
   val mentionUpdateIntervalTextField = new TextField (Main.prefs.getInt("mentionUpdateInterval", Main.defMentionUpdateInterval).toString)  
-  val everyoneUpdateIntervalTextField = new TextField (Main.prefs.getInt("everyoneUpdateInterval", Main.defEveryoneUpdateInterval).toString)
+  val publicUpdateIntervalTextField = new TextField (Main.prefs.getInt("publicUpdateInterval", Main.defPublicUpdateInterval).toString)
   val numTimeLinesTextField = new TextField (Main.prefs.getInt("numTimeLines", Main.defNumTimeLines).toString)
   val okButton = new Button ("OK")
   val cancelButton = new Button("Cancel")
@@ -42,9 +42,9 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     contents += new Label("Home TL interval(sec): ")
     contents += homeUpdateIntervalTextField
     contents += new Label("My TL interval(sec): ")
-    contents += myUpdateIntervalTextField
-    contents += new Label("Everyone TL interval(sec): ")
-    contents += everyoneUpdateIntervalTextField
+    contents += userUpdateIntervalTextField
+    contents += new Label("Public TL interval(sec): ")
+    contents += publicUpdateIntervalTextField
     contents += new Label("Mention TL interval(sec): ")
     contents += mentionUpdateIntervalTextField    
     contents += new Label("Num timelines: ")
@@ -81,8 +81,8 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
 
     Main.prefs.putBoolean("autoUpdateEnabled", autoUpdateCheckBox.selected)
     Main.prefs.putInt("homeUpdateInterval", Integer.parseInt(homeUpdateIntervalTextField.text))
-    Main.prefs.putInt("myUpdateInterval", Integer.parseInt(myUpdateIntervalTextField.text))
-    Main.prefs.putInt("everyoneUpdateInterval", Integer.parseInt(everyoneUpdateIntervalTextField.text))
+    Main.prefs.putInt("userUpdateInterval", Integer.parseInt(userUpdateIntervalTextField.text))
+    Main.prefs.putInt("publicUpdateInterval", Integer.parseInt(publicUpdateIntervalTextField.text))
     Main.prefs.putInt("mentionUpdateInterval", Integer.parseInt(mentionUpdateIntervalTextField.text))    
     Main.prefs.putBoolean("progressBarEnabled",progressBarEnabledCheckBoxDialog.selected)
     Main.prefs.putInt("numTimeLines", Integer.parseInt(numTimeLinesTextField.text))

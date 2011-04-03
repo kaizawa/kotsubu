@@ -34,24 +34,33 @@ object UpdateDaemon extends {
         val updateActor = self
         actor {
           // stop thread if auto-update is disabled
-          if(Main.prefs.getBoolean("autoUpdateEnabled", Main.defAutoUpdateEnabled)
-             == false){ return }
-          updateActor ! updatetype
-          val waittime = Main.prefs.getInt("updateInterval", Main.defEveryoneUpdateInterval) * 1000
-          Thread.sleep(waittime)
+          if(Main.prefs.getBoolean("autoUpdateEnabled", Main.defAutoUpdateEnabled) == false){ return }
+
+          val waittime = updatetype match {
+            case UpdateType("home") => prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval)
+            case UpdateType("user") => prefs.getInt("userUpdateInterval", Main.defUserUpdateInterval)
+            case UpdateType("public") => prefs.getInt("publicUpdateInterval", Main.defPublicUpdateInterval)
+            case UpdateType("mention") => prefs.getInt("mentionUpdateInterval", Main.defMentionUpdateInterval)  
+          }
+          // Start scheduled update          
+          //println(updatetype.name + " waiting for " + waittime + " sec.")
+          Thread.sleep(waittime * 1000)
+          updateActor ! updatetype          
+        }
+      } 
+
+      // Start scheduled update      
+      List("home", "user", "public", "mention") map {tl => {
+          updateTimeLine(UpdateType(tl))
+          tlChecker(UpdateType(tl))
         }
       }
-
-      tlChecker(UpdateType("users", prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval)))
-      tlChecker(UpdateType("public", prefs.getInt("myUpdateInterval", Main.defMyUpdateInterval)))
-      tlChecker(UpdateType("home", prefs.getInt("everyoneUpdateInterval", Main.defEveryoneUpdateInterval)))
-      tlChecker(UpdateType("mention", prefs.getInt("mentionUpdateInterval", Main.defMentionUpdateInterval)))      
-
+      
       loop {
         react {
           case updatetype:UpdateType => {
-                updateTimeLine(updatetype)
-                tlChecker(updatetype)
+              updateTimeLine(updatetype)     
+              tlChecker(updatetype)
             }
         }
       }
