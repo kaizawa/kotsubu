@@ -45,6 +45,7 @@ import twitter4j.Status
 import twitter4j.Twitter
 import twitter4j.auth.AccessToken
 import twitter4j.auth.RequestToken
+import scala.swing.Dialog._
 
 case class UpdateType(name:String)
 
@@ -54,7 +55,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.12"  // version
+  val version = "0.1.13"  // version
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   var currentUpdateType = UpdateType("home") // default time line  
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
@@ -66,7 +67,7 @@ object Main extends SimpleSwingApplication {
   val defAutoUpdateEnabled = true // Default value for auto-update
   val defHomeUpdateInterval = 30 // Default interval of auto-update
   val defUserUpdateInterval = 120 // Default interval of auto-update
-  val defPublicUpdateInterval = 120 // Default interval of auto-update
+  val defPublicUpdateInterval = 360 // Default interval of auto-update
   val defMentionUpdateInterval = 120 // Default interval of auto-update  
   val defProgressBarEnabled = false // Enable/Disable progress bar.
   val defNumTimeLines = 20 // Number of tweets to be shown.
@@ -74,7 +75,10 @@ object Main extends SimpleSwingApplication {
   val defConsumerSecret = "fD9SO5gUNYP9AuhCSYuob9inQU0jKl5bPMuGj1QRkFo"
   val replyIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/arrow_turn_left.png")))
   val rtIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/arrow_refresh.png")))  
+  val rtwcIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/comment_add.png")))  
+  val directIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/email_go.png")))  
 
+  
   /////////////  Panel for update button  //////////////
   val updateButton = new Button("update")
   val updateButtonPanel = new BoxPanel(Orientation.Horizontal){
@@ -146,7 +150,6 @@ object Main extends SimpleSwingApplication {
     contents += statusPanel
     border = Swing.EmptyBorder(10, 10, 10, 10)
   }
-
 
   /**
    * Main window of kotsubu
@@ -240,37 +243,6 @@ object Main extends SimpleSwingApplication {
         case UpdateType("mention") => (Main.mentionTlScrollPane, twitter.getMentions())
       }
 
-      /*
-       var statuses:ResponseList[Status] = null
-       var tlScrollPane:TlScrollPane = null
-    
-       try {
-       updateType match {
-       case UpdateType("home") => {
-       tlScrollPane = Main.homeTlScrollPane 
-       statuses = twitter.getHomeTimeline()          
-       }
-       case UpdateType("user")   => {
-       tlScrollPane = Main.userTlScrollPane 
-       statuses = twitter.getUserTimeline()                    
-       }
-       case UpdateType("public")  => {
-       tlScrollPane = Main.publicTlScrollPane 
-       statuses = twitter.getPublicTimeline()                    
-       }
-       case UpdateType("mention")  => {
-       tlScrollPane = Main.mentionTlScrollPane 
-       statuses = twitter.getMentions()                    
-       }        
-       }
-       } catch {
-       case ex:Exception => {
-       println("Updating " + updateType.name + " timeline failed.")
-       return;
-       }
-       }
-       */
-
       val timeLineList = new BoxPanel(Orientation.Vertical){
         background = Color.white
       }
@@ -293,7 +265,7 @@ object Main extends SimpleSwingApplication {
 
         // Create link to user's page
         val sbname:StringBuffer = new StringBuffer()
-        sbname.append("<B><a href=\"" + friendsPage + username + "\">" + username + "</a></B>")
+        sbname.append("<B><a href=\"" + friendsPage + username + "\">" + username + "</a> " + user.getName + "</B>")
         val usernameTextPane = new EditorPane(){
           background = Color.white
           contentType = ("text/html")        
@@ -317,7 +289,7 @@ object Main extends SimpleSwingApplication {
 
         // ReTweet button
         val retweetButton = new Button {
-          tooltip = "Retweet"
+          tooltip = "Official Retweet"
           icon = rtIcon
         }
 
@@ -326,13 +298,27 @@ object Main extends SimpleSwingApplication {
           tooltip = " Reply "
           icon = replyIcon
         }
-
+        
+        // Direct Messge Button
+        val directMessageButton = new Button {
+          tooltip = "Direct Message"
+          icon = directIcon
+        }
+        
+        // Official Retweet Button
+        val retweetWithCommentButton = new Button {
+          tooltip = "Retweet with comments"
+          icon = rtwcIcon
+        }
+        
         // Operational Panel
-        val operationPanel = new BorderPanel(){
+        val operationPanel = new GridPanel(2,2){
           background = Color.white
           import BorderPanel.Position._
-          add(replyButton, North)
-          add(retweetButton, South)
+          contents += replyButton
+          contents += retweetButton
+          contents += retweetWithCommentButton
+          contents += directMessageButton
           background_=(java.awt.Color.WHITE)
           border = Swing.EmptyBorder(0,0,5,0)
         }
@@ -342,12 +328,25 @@ object Main extends SimpleSwingApplication {
           case ButtonClicked(`replyButton`) =>  SwingUtilities invokeLater {
               messageTextArea.text_=("@" + username + " ")
             }
-          case ButtonClicked(`retweetButton`) => SwingUtilities invokeLater {
+          case ButtonClicked(`retweetWithCommentButton`) => SwingUtilities invokeLater {
               messageTextArea.text_=("RT @" + username + " " +  status.getText)
             }
+          case ButtonClicked(`retweetButton`) => {
+              scala.swing.Dialog.showConfirmation(title="Retweet", message="Are you sure you want to retweet?") match {
+                case Result.Yes => {
+                    try {
+                      twitter.retweetStatus(status.getId)
+                    } catch { case _ =>}
+                  }
+                case _ => 
+              }
+            }            
+          case ButtonClicked(`directMessageButton`) =>  SwingUtilities invokeLater {
+              messageTextArea.text_=("d " + username + " ")
+            }            
         }
 
-        operationPanel.listenTo(replyButton, retweetButton)
+        operationPanel.listenTo(replyButton, retweetButton, directMessageButton, retweetWithCommentButton)
 
         // Regexp to check an user name start with @ char.
         val namefilter = """@([^:.]*)""".r
@@ -380,7 +379,7 @@ object Main extends SimpleSwingApplication {
           // TODO: Consider the way of calculating height of timeline
           // -20 is not good way...
           // preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
-          preferredSize = new Dimension(tlScrollPane.size.width - userIconSize - operationPanelWidth - 20, timeLineInitialHeight)
+          preferredSize = new Dimension(tlScrollPane.size.width - userIconSize - operationPanelWidth - 40, timeLineInitialHeight)
         }
         messageTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
         messageTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
@@ -476,29 +475,24 @@ object Main extends SimpleSwingApplication {
    */
   def loadIconAndStore(user:User) :javax.swing.ImageIcon = {
     val username = user.getScreenName
-    var image:ImageIcon = null
     var originalImage:BufferedImage = null
-
-    
-    // Read original icon stored in Twitter.
     try {
+      // Read original icon stored in Twitter.      
       originalImage = javax.imageio.ImageIO.read(user.getProfileImageURL)
     } catch {
       case ex: Exception => 
         println("Can't read icon from " + user.getProfileImageURL.toString + ". Use default icon.")
     }
 
-    if(originalImage == null){
+    val image:ImageIcon = originalImage match {
       // Use default icon, if original icon is not found.
-      image = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/default.png")))
-    } else {
-      // Set size to 50x50
-      val smallImage = originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH)
-      image = new javax.swing.ImageIcon(smallImage)
+      case null => new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/default.png")))
+        // Set size to 50x50        
+      case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH))
     }
-    // Clear all cached icon, if it exceed 1,000....
-    if(imageIconMap.size > 1000){
-      System.out.println("Clear imageIconMap.")
+    // Clear all cached icon, if it exceed 500....
+    if(imageIconMap.size > 500){
+      println("Clear imageIconMap.")
       imageIconMap.clear
     }
     // Set icon as a label's icon.
