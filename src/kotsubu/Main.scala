@@ -164,10 +164,8 @@ object Main extends SimpleSwingApplication {
     title = "kotsubu"
     
     /*
-     *  常に各タイムラインの自動アップデートの待機用の Actor が Timeline 数分だけ(今は4つ)
-     *  動いているので、デフォルトの4つ(Core数x2)では、他の Actor が(例えば Update 用)
-     *  自動アップデートが終了する合間でしか動作できなくなってしまう。
-     *  なので、余裕をもって 10 この core Pool を設定しておく。
+     * Changed default thread number to 6, since default of 4 threads are
+     * consumed by actor which sleeps on waiting periodical auto update.
      */    
     System.setProperty("actors.corePoolSize", "10")
 
@@ -219,7 +217,6 @@ object Main extends SimpleSwingApplication {
    * @param updateType Timeline type to be updated.
    */
   def updateTimeLine(updateType:UpdateType) :Unit = {
-//    println(updateType.name + ":calling updateTimeLine") //TODO: remove
     try {
       // Start progress bar, if needed.
       if(prefs.getBoolean("progressBarEnabled", defProgressBarEnabled)){
@@ -250,7 +247,6 @@ object Main extends SimpleSwingApplication {
         case UpdateType("public") => (Main.publicTlScrollPane, twitter.getPublicTimeline())
         case UpdateType("mention") => (Main.mentionTlScrollPane, twitter.getMentions())
       }
-//      println(updateType.name + ": getTimeline completed") //TODO: remove
       
       val timeLinePanel = (tlScrollPane.viewportView) match {
         case Some(oldPanel:BoxPanel) => oldPanel
@@ -261,10 +257,12 @@ object Main extends SimpleSwingApplication {
             tlScrollPane.viewportView_=(timeLinePanel)}              
         case _ =>
       }      
-        
-      println(updateType.name + ": size=" + timeLinePanel.contents.length 
-              + ", x=" +tlScrollPane.peer.getViewport.getViewPosition.x
-              + ", y=" +tlScrollPane.peer.getViewport.getViewPosition.y) //TODO: remove     
+      
+      /*
+       println(updateType.name + ": size=" + timeLinePanel.contents.length 
+       + ", x=" +tlScrollPane.peer.getViewport.getViewPosition.x
+       + ", y=" +tlScrollPane.peer.getViewport.getViewPosition.y) //TODO: remove     
+       */
 
       val simpleFormat = new SimpleDateFormat("MM/dd HH:mm")
       val friendsPage = "http://twitter.com/#!/"
@@ -274,14 +272,11 @@ object Main extends SimpleSwingApplication {
         case None => 0L
       }
 
-//      println("Calling for Last ID = " + lastid)//TODO: remove
       // Process statuses one by one.
       var count:Int = 0
       for (status:Status <- statuses.toArray(new Array[Status](0)).reverse) {
         val user = status.getUser        
-//        println("  " + status.getId + ":" + updateType.name + ":" + user.getScreenName) //TODO: remove
-
-        // すでに読み込んだツイートは無視。        
+        // Ignore tweet that was already read by comparing status id.
         if(status.getId > lastid){
           // Icon. Load from server, if it is not cached yet.
           val iconLabel = new Label
@@ -316,31 +311,26 @@ object Main extends SimpleSwingApplication {
             add(usernameTextPane, West)
             add(new TextArea(simpleFormat.format(createdDate)), East)
           }
-
           // ReTweet button
           val retweetButton = new Button {
             tooltip = "Official Retweet"
             icon = rtIcon
           }
-
           // Reply button
           val replyButton = new Button {
             tooltip = " Reply "
             icon = replyIcon
           }
-        
           // Direct Messge Button
           val directMessageButton = new Button {
             tooltip = "Direct Message"
             icon = directIcon
           }
-        
           // Official Retweet Button
           val retweetWithCommentButton = new Button {
             tooltip = "Retweet with comments"
             icon = rtwcIcon
           }
-        
           // Operational Panel
           val operationPanel = new GridPanel(2,2){
             background = Color.white
@@ -377,7 +367,6 @@ object Main extends SimpleSwingApplication {
           }
 
           operationPanel.listenTo(replyButton, retweetButton, directMessageButton, retweetWithCommentButton)
-
           // Regexp to check an user name start with @ char.
           val namefilter = """@([^:.]*)""".r
           // Regexp to check if it is URL
@@ -450,12 +439,11 @@ object Main extends SimpleSwingApplication {
         }
       }
       val vp = tlScrollPane.peer.getViewport
+      // Height of each statusPanels seems to be 89.
       vp.setViewPosition(new Point(vp.getViewPosition.x, vp.getViewPosition.y + count * 89))
       SwingUtilities invokeLater {
         tlScrollPane.viewportView_=(timeLinePanel)
       }
-      println("scrollPane height="+tlScrollPane.size.height)                  
-      println("timeLinePa height="+timeLinePanel.size.height)                        
       // Stop progress bar
       if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
         progressbar.indeterminate_=(false)
@@ -526,7 +514,7 @@ object Main extends SimpleSwingApplication {
     val image:ImageIcon = originalImage match {
       // Use default icon, if original icon is not found.
       case null => new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/default.png")))
-        // Set size to 50x50        
+      // Set size to 50x50        
       case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(userIconSize,userIconSize, java.awt.Image.SCALE_SMOOTH))
     }
     // Clear all cached icon, if it exceed 500....
