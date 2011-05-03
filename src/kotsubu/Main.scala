@@ -80,7 +80,12 @@ object Main extends SimpleSwingApplication {
 
   
   /////////////  Panel for update button  //////////////
-  val updateButton = new Button("update")
+  val updateButton = Button("Update"){
+    actor{
+      updateTimeLine(currentUpdateType)
+    }    
+    println("update button pushed" + currentUpdateType)
+  }
   val updateButtonPanel = new BoxPanel(Orientation.Horizontal){
     contents += updateButton
   }
@@ -98,11 +103,11 @@ object Main extends SimpleSwingApplication {
   }
 
   //////// Panel for post message  /////////
-  val postButton = new Button {
-    text = "Post "
+  val postButton = Button("Post ") {
+     postMessageAndClear(messageTextArea)    
   }
-  val clearButton = new Button {
-    text = "Clear"
+  val clearButton = Button("Clear") {
+    SwingUtilities invokeLater {messageTextArea.text_=("")}
   }
   val postButtonPanel = new BoxPanel (Orientation.Vertical){
     contents += postButton
@@ -159,17 +164,20 @@ object Main extends SimpleSwingApplication {
 
     contents = mainPanel
 
-    listenTo(updateButton,postButton,clearButton,mainPanel,tabbedPane.selection)
+//    listenTo(updateButton,postButton,clearButton,mainPanel,tabbedPane.selection)
+    listenTo(mainPanel,tabbedPane.selection)    
 
     // Register handler for GUI event
     reactions += {
-      case ButtonClicked(`updateButton`) => actor{
-          updateTimeLine(currentUpdateType)
-        }
-      case ButtonClicked(`postButton`) => postMessageAndClear(messageTextArea)
-      case ButtonClicked(`clearButton`) => SwingUtilities invokeLater {
-          messageTextArea.text_=("")
-        }
+      /*      
+       case ButtonClicked(`updateButton`) => actor{
+       updateTimeLine(currentUpdateType)
+       }
+       case ButtonClicked(`postButton`) => postMessageAndClear(messageTextArea)        
+       case ButtonClicked(`clearButton`) => SwingUtilities invokeLater {
+       messageTextArea.text_=("")
+       }
+       */        
       case SelectionChanged(`tabbedPane`) => tabbedPane.selection.page.title match {
           case "Home" => currentUpdateType_= (UpdateType("home"))
           case "My tweets" => currentUpdateType_=(UpdateType("user"))
@@ -389,7 +397,7 @@ object Main extends SimpleSwingApplication {
               } }
           });
 
-        // Consolidate timeline and icon
+        // Consolidate user info, icon and status
         val statusPanel = new BorderPanel (){
           background = Color.white
           import BorderPanel.Position._
