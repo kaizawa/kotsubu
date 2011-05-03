@@ -219,7 +219,7 @@ object Main extends SimpleSwingApplication {
    * @param updateType Timeline type to be updated.
    */
   def updateTimeLine(updateType:UpdateType) :Unit = {
-    println(updateType.name + ":calling updateTimeLine")
+//    println(updateType.name + ":calling updateTimeLine") //TODO: remove
     try {
       // Start progress bar, if needed.
       if(prefs.getBoolean("progressBarEnabled", defProgressBarEnabled)){
@@ -250,7 +250,7 @@ object Main extends SimpleSwingApplication {
         case UpdateType("public") => (Main.publicTlScrollPane, twitter.getPublicTimeline())
         case UpdateType("mention") => (Main.mentionTlScrollPane, twitter.getMentions())
       }
-      println(updateType.name + ": getTimeline completed")
+//      println(updateType.name + ": getTimeline completed") //TODO: remove
       
       val timeLinePanel = (tlScrollPane.viewportView) match {
         case Some(oldPanel:BoxPanel) => oldPanel
@@ -274,11 +274,12 @@ object Main extends SimpleSwingApplication {
         case None => 0L
       }
 
-      println("Calling for Last ID = " + lastid)
+//      println("Calling for Last ID = " + lastid)//TODO: remove
       // Process statuses one by one.
+      var count:Int = 0
       for (status:Status <- statuses.toArray(new Array[Status](0)).reverse) {
         val user = status.getUser        
-        //println("  " + status.getId + ":" + updateType.name + ":" + user.getScreenName) //TODO: remove
+//        println("  " + status.getId + ":" + updateType.name + ":" + user.getScreenName) //TODO: remove
 
         // すでに読み込んだツイートは無視。        
         if(status.getId > lastid){
@@ -440,16 +441,21 @@ object Main extends SimpleSwingApplication {
           if(timeLinePanel.contents.length >= Main.prefs.getInt("numTimeLines", Main.defNumTimeLines)){
             SwingUtilities invokeLater {
               timeLinePanel.contents.remove(timeLinePanel.contents.length -1)
-
             }            
           }
           SwingUtilities invokeLater {
             timeLinePanel.contents.insert(0, statusPanel)
-            timeLinePanel.repaint
           }
+          count += 1
         }
       }
-//      SwingUtilities invokeLater timeLinePanel.repaint                
+      val vp = tlScrollPane.peer.getViewport
+      vp.setViewPosition(new Point(vp.getViewPosition.x, vp.getViewPosition.y + count * 89))
+      SwingUtilities invokeLater {
+        tlScrollPane.viewportView_=(timeLinePanel)
+      }
+      println("scrollPane height="+tlScrollPane.size.height)                  
+      println("timeLinePa height="+timeLinePanel.size.height)                        
       // Stop progress bar
       if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
         progressbar.indeterminate_=(false)
