@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * 
+ * Changes: Post,Cancel,Update button to Actions model.
  */
 
 package kotsubu
@@ -161,6 +163,14 @@ object Main extends SimpleSwingApplication {
    */
   def top = new MainFrame {
     title = "kotsubu"
+    
+    /*
+     *  常に各タイムラインの自動アップデートの待機用の Actor が Timeline 数分だけ(今は4つ)
+     *  動いているので、デフォルトの4つ(Core数x2)では、他の Actor が(例えば Update 用)
+     *  自動アップデートが終了する合間でしか動作できなくなってしまう。
+     *  なので、余裕をもって 10 この core Pool を設定しておく。
+     */    
+    System.setProperty("actors.corePoolSize", "10")
 
     contents = mainPanel
 
@@ -221,6 +231,7 @@ object Main extends SimpleSwingApplication {
    */
   def updateTimeLine(updateType:UpdateType) :Unit = {
     try {
+      println("updateTimeLine called: " + updateType)
       // Start progress bar, if needed.
       if(prefs.getBoolean("progressBarEnabled", defProgressBarEnabled)){
         progressbar.indeterminate_=(true)
