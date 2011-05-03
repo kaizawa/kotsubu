@@ -72,7 +72,7 @@ object Main extends SimpleSwingApplication {
   val defPublicUpdateInterval = 360 // Default interval of auto-update
   val defMentionUpdateInterval = 120 // Default interval of auto-update  
   val defProgressBarEnabled = false // Enable/Disable progress bar.
-  val defNumTimeLines = 20 // Number of tweets to be shown.
+  val defNumTimeLines = 100 // Number of tweets to be shown.
   val defOAuthConsumerKey = "PaWXdbUBNZGJVuDqxFY8wg"
   val defConsumerSecret = "fD9SO5gUNYP9AuhCSYuob9inQU0jKl5bPMuGj1QRkFo"
   val replyIcon = new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/arrow_turn_left.png")))
@@ -86,7 +86,6 @@ object Main extends SimpleSwingApplication {
     actor{
       updateTimeLine(currentUpdateType)
     }    
-    println("update button pushed" + currentUpdateType)
   }
   val updateButtonPanel = new BoxPanel(Orientation.Horizontal){
     contents += updateButton
@@ -106,7 +105,7 @@ object Main extends SimpleSwingApplication {
 
   //////// Panel for post message  /////////
   val postButton = Button("Post ") {
-     postMessageAndClear(messageTextArea)    
+    postMessageAndClear(messageTextArea)    
   }
   val clearButton = Button("Clear") {
     SwingUtilities invokeLater {messageTextArea.text_=("")}
@@ -174,20 +173,10 @@ object Main extends SimpleSwingApplication {
 
     contents = mainPanel
 
-//    listenTo(updateButton,postButton,clearButton,mainPanel,tabbedPane.selection)
     listenTo(mainPanel,tabbedPane.selection)    
 
     // Register handler for GUI event
-    reactions += {
-      /*      
-       case ButtonClicked(`updateButton`) => actor{
-       updateTimeLine(currentUpdateType)
-       }
-       case ButtonClicked(`postButton`) => postMessageAndClear(messageTextArea)        
-       case ButtonClicked(`clearButton`) => SwingUtilities invokeLater {
-       messageTextArea.text_=("")
-       }
-       */        
+    reactions += {       
       case SelectionChanged(`tabbedPane`) => tabbedPane.selection.page.title match {
           case "Home" => currentUpdateType_= (UpdateType("home"))
           case "My tweets" => currentUpdateType_=(UpdateType("user"))
@@ -230,8 +219,8 @@ object Main extends SimpleSwingApplication {
    * @param updateType Timeline type to be updated.
    */
   def updateTimeLine(updateType:UpdateType) :Unit = {
+    println(updateType.name + ":calling updateTimeLine")
     try {
-      println("updateTimeLine called: " + updateType)
       // Start progress bar, if needed.
       if(prefs.getBoolean("progressBarEnabled", defProgressBarEnabled)){
         progressbar.indeterminate_=(true)
@@ -261,181 +250,206 @@ object Main extends SimpleSwingApplication {
         case UpdateType("public") => (Main.publicTlScrollPane, twitter.getPublicTimeline())
         case UpdateType("mention") => (Main.mentionTlScrollPane, twitter.getMentions())
       }
+      println(updateType.name + ": getTimeline completed")
+      
+      val timeLinePanel = (tlScrollPane.viewportView) match {
+        case Some(oldPanel:BoxPanel) => oldPanel
+        case None =>  new BoxPanel(Orientation.Vertical){background = Color.white}
+      }      
+      tlScrollPane.viewportView match {
+        case None =>  SwingUtilities invokeLater {
+            tlScrollPane.viewportView_=(timeLinePanel)}              
+        case _ =>
+      }      
+        
+      println(updateType.name + ": size=" + timeLinePanel.contents.length 
+              + ", x=" +tlScrollPane.peer.getViewport.getViewPosition.x
+              + ", y=" +tlScrollPane.peer.getViewport.getViewPosition.y) //TODO: remove     
 
-      val timeLinePanel = new BoxPanel(Orientation.Vertical){
-        background = Color.white
-      }
       val simpleFormat = new SimpleDateFormat("MM/dd HH:mm")
       val friendsPage = "http://twitter.com/#!/"
+      
+      val lastid:Long = timeLinePanel.contents.headOption match {
+        case Some(statusPanel:StatusPanel) => statusPanel.status.getId
+        case None => 0L
+      }
 
+      println("Calling for Last ID = " + lastid)
       // Process statuses one by one.
-      for (status:Status <- statuses.toArray(new Array[Status](0))) {
-        val user = status.getUser
+      for (status:Status <- statuses.toArray(new Array[Status](0)).reverse) {
+        val user = status.getUser        
+        //println("  " + status.getId + ":" + updateType.name + ":" + user.getScreenName) //TODO: remove
 
-        // Icon. Load from server, if it is not cached yet.
-        val iconLabel = new Label
-        iconLabel.icon = imageIconMap get (user.getScreenName) match {
-          case Some(icon) => icon
-          case None => loadIconAndStore(user)
-        }
-
-        val createdDate = status.getCreatedAt
-        val username = user.getScreenName
-
-        // Create link to user's page
-        val sbname:StringBuffer = new StringBuffer()
-        sbname.append("<B><a href=\"" + friendsPage + username + "\">" + username + "</a> " + user.getName + "</B>")
-        val usernameTextPane = new EditorPane(){
-          background = Color.white
-          contentType = ("text/html")        
-          text = sbname.toString()
-          editable = false
-        }
-        usernameTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
-        usernameTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
-            def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
-              if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
-                Desktop.getDesktop().browse(new URI(e.getDescription()));
-              } }
-          });
-        // Information Panel 
-        val tweetInfoPanel = new BorderPanel(){
-          import BorderPanel.Position._
-          background = Color.white
-          add(usernameTextPane, West)
-          add(new TextArea(simpleFormat.format(createdDate)), East)
-        }
-
-        // ReTweet button
-        val retweetButton = new Button {
-          tooltip = "Official Retweet"
-          icon = rtIcon
-        }
-
-        // Reply button
-        val replyButton = new Button {
-          tooltip = " Reply "
-          icon = replyIcon
-        }
-        
-        // Direct Messge Button
-        val directMessageButton = new Button {
-          tooltip = "Direct Message"
-          icon = directIcon
-        }
-        
-        // Official Retweet Button
-        val retweetWithCommentButton = new Button {
-          tooltip = "Retweet with comments"
-          icon = rtwcIcon
-        }
-        
-        // Operational Panel
-        val operationPanel = new GridPanel(2,2){
-          background = Color.white
-          import BorderPanel.Position._
-          contents += replyButton
-          contents += retweetButton
-          contents += retweetWithCommentButton
-          contents += directMessageButton
-          background_=(java.awt.Color.WHITE)
-          border = Swing.EmptyBorder(0,0,5,0)
-        }
-
-        // Register hander for GUI event
-        operationPanel.reactions += {
-          case ButtonClicked(`replyButton`) =>  SwingUtilities invokeLater {
-              messageTextArea.text_=("@" + username + " ")
-            }
-          case ButtonClicked(`retweetWithCommentButton`) => SwingUtilities invokeLater {
-              messageTextArea.text_=("RT @" + username + " " +  status.getText)
-            }
-          case ButtonClicked(`retweetButton`) => {
-              scala.swing.Dialog.showConfirmation(title="Retweet", message="Are you sure you want to retweet?") match {
-                case Result.Yes => {
-                    try {
-                      twitter.retweetStatus(status.getId)
-                    } catch { case _ =>}
-                  }
-                case _ => 
-              }
-            }            
-          case ButtonClicked(`directMessageButton`) =>  SwingUtilities invokeLater {
-              messageTextArea.text_=("d " + username + " ")
-            }            
-        }
-
-        operationPanel.listenTo(replyButton, retweetButton, directMessageButton, retweetWithCommentButton)
-
-        // Regexp to check an user name start with @ char.
-        val namefilter = """@([^:.]*)""".r
-        // Regexp to check if it is URL
-        val urlfilter = """([a-z]+)://(.*)""".r
-        // Regexp ended by full-width space
-        val urlfilterFullWidthSpace = """([a-z]+)://([^　]*)([　]*)(.*)""".r
-        // Regexp ended by usernam
-        val namefilterFullWidthSpace = """@([^　]*)([　]*)(.*)""".r
-        // Create a link
-        val tokenizer:StringTokenizer = new StringTokenizer(status.getText)
-        val sb:StringBuffer = new StringBuffer()
-        while (tokenizer.hasMoreTokens()) {
-          tokenizer.nextToken() match {
-            case urlfilter(protocol, url)
-              =>  {sb.append("<a href=\"" + protocol + "://" + url + "\">"
-                             + protocol + "://" + url + "</a>")}
-            case namefilter(name)
-              => {sb.append("<a href=\"" + friendsPage + name + "\">@" + name + "</a>")}
-            case word => {sb.append(word)}
-              //TODO: make it handle Full-Width space char
+        // すでに読み込んだツイートは無視。        
+        if(status.getId > lastid){
+          // Icon. Load from server, if it is not cached yet.
+          val iconLabel = new Label
+          iconLabel.icon = imageIconMap get (user.getScreenName) match {
+            case Some(icon) => icon
+            case None => loadIconAndStore(user)
           }
-          sb.append(" ")
-        }
-        val messageTextPane = new EditorPane(){
-          background = Color.white
-          contentType = "text/html"
-          editable = false
-          text = sb.toString()
-          // TODO: Consider the way of calculating height of timeline
-          // -20 is not good way...
-          // preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
-          preferredSize = new Dimension(tlScrollPane.size.width - userIconSize - operationPanelWidth - 40, timeLineInitialHeight)
-        }
-        messageTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
-        messageTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
-            def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
-              if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
-                Desktop.getDesktop().browse(new URI(e.getDescription()));
-              } }
-          });
 
-        // Consolidate user info, icon and status
-        val statusPanel = new BorderPanel (){
-          background = Color.white
-          import BorderPanel.Position._
-          add(new BorderPanel (){
-              background = Color.white
-              border = Swing.EmptyBorder(2, 0, 2, 0)
-              add(iconLabel, North)
-            }, West)
-          add(new BorderPanel (){
-              border = Swing.EmptyBorder(0, 5, 0, 5)
-              background = Color.white
-              add(tweetInfoPanel, North)
-              add(messageTextPane, Center)
-              add(operationPanel, East)
-            }, Center)
-        }
-        timeLinePanel.contents += statusPanel
-        timeLinePanel.contents += new Separator{
-          background = Color.white
+          val createdDate = status.getCreatedAt
+          val username = user.getScreenName
+
+          // Create link to user's page
+          val sbname:StringBuffer = new StringBuffer()
+          sbname.append("<B><a href=\"" + friendsPage + username + "\">" + username + "</a> " + user.getName + "</B>")
+          val usernameTextPane = new EditorPane(){
+            background = Color.white
+            contentType = ("text/html")        
+            text = sbname.toString()
+            editable = false
+          }
+          usernameTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
+          usernameTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
+              def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
+                if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
+                  Desktop.getDesktop().browse(new URI(e.getDescription()));
+                } }
+            });
+          // Information Panel 
+          val tweetInfoPanel = new BorderPanel(){
+            import BorderPanel.Position._
+            background = Color.white
+            add(usernameTextPane, West)
+            add(new TextArea(simpleFormat.format(createdDate)), East)
+          }
+
+          // ReTweet button
+          val retweetButton = new Button {
+            tooltip = "Official Retweet"
+            icon = rtIcon
+          }
+
+          // Reply button
+          val replyButton = new Button {
+            tooltip = " Reply "
+            icon = replyIcon
+          }
+        
+          // Direct Messge Button
+          val directMessageButton = new Button {
+            tooltip = "Direct Message"
+            icon = directIcon
+          }
+        
+          // Official Retweet Button
+          val retweetWithCommentButton = new Button {
+            tooltip = "Retweet with comments"
+            icon = rtwcIcon
+          }
+        
+          // Operational Panel
+          val operationPanel = new GridPanel(2,2){
+            background = Color.white
+            import BorderPanel.Position._
+            contents += replyButton
+            contents += retweetButton
+            contents += retweetWithCommentButton
+            contents += directMessageButton
+            background_=(java.awt.Color.WHITE)
+            border = Swing.EmptyBorder(0,0,5,0)
+          }
+
+          // Register hander for GUI event
+          operationPanel.reactions += {
+            case ButtonClicked(`replyButton`) =>  SwingUtilities invokeLater {
+                messageTextArea.text_=("@" + username + " ")
+              }
+            case ButtonClicked(`retweetWithCommentButton`) => SwingUtilities invokeLater {
+                messageTextArea.text_=("RT @" + username + " " +  status.getText)
+              }
+            case ButtonClicked(`retweetButton`) => {
+                scala.swing.Dialog.showConfirmation(title="Retweet", message="Are you sure you want to retweet?") match {
+                  case Result.Yes => {
+                      try {
+                        twitter.retweetStatus(status.getId)
+                      } catch { case _ =>}
+                    }
+                  case _ => 
+                }
+              }            
+            case ButtonClicked(`directMessageButton`) =>  SwingUtilities invokeLater {
+                messageTextArea.text_=("d " + username + " ")
+              }            
+          }
+
+          operationPanel.listenTo(replyButton, retweetButton, directMessageButton, retweetWithCommentButton)
+
+          // Regexp to check an user name start with @ char.
+          val namefilter = """@([^:.]*)""".r
+          // Regexp to check if it is URL
+          val urlfilter = """([a-z]+)://(.*)""".r
+          // Regexp ended by full-width space
+          val urlfilterFullWidthSpace = """([a-z]+)://([^　]*)([　]*)(.*)""".r
+          // Regexp ended by usernam
+          val namefilterFullWidthSpace = """@([^　]*)([　]*)(.*)""".r
+          // Create a link
+          val tokenizer:StringTokenizer = new StringTokenizer(status.getText)
+          val sb:StringBuffer = new StringBuffer()
+          while (tokenizer.hasMoreTokens()) {
+            tokenizer.nextToken() match {
+              case urlfilter(protocol, url)
+                =>  {sb.append("<a href=\"" + protocol + "://" + url + "\">"
+                               + protocol + "://" + url + "</a>")}
+              case namefilter(name)
+                => {sb.append("<a href=\"" + friendsPage + name + "\">@" + name + "</a>")}
+              case word => {sb.append(word)}
+                //TODO: make it handle Full-Width space char
+            }
+            sb.append(" ")
+          }
+          val messageTextPane = new EditorPane(){
+            background = Color.white
+            contentType = "text/html"
+            editable = false
+            text = sb.toString()
+            // TODO: Consider the way of calculating height of timeline
+            // -20 is not good way...
+            // preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
+            preferredSize = new Dimension(tlScrollPane.size.width - userIconSize - operationPanelWidth - 40, timeLineInitialHeight)
+          }
+          messageTextPane.peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
+          messageTextPane.peer.addHyperlinkListener(new HyperlinkListener() {
+              def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {
+                if(e.getEventType()==HyperlinkEvent.EventType.ACTIVATED) {
+                  Desktop.getDesktop().browse(new URI(e.getDescription()));
+                } }
+            });
+
+          // Consolidate user info, icon and status
+          val statusPanel = new StatusPanel (){
+            background = Color.white
+            import BorderPanel.Position._
+            add(new BorderPanel (){
+                background = Color.white
+                border = Swing.EmptyBorder(2, 0, 2, 0)
+                add(iconLabel, North)
+              }, West)
+            add(new BorderPanel (){
+                border = Swing.EmptyBorder(0, 5, 0, 5)
+                background = Color.white
+                add(tweetInfoPanel, North)
+                add(messageTextPane, Center)
+                add(operationPanel, East)
+              }, Center)
+            add(new Separator{background = Color.white}, South)
+          }
+          statusPanel.status_=(status)
+          if(timeLinePanel.contents.length >= Main.prefs.getInt("numTimeLines", Main.defNumTimeLines)){
+            SwingUtilities invokeLater {
+              timeLinePanel.contents.remove(timeLinePanel.contents.length -1)
+
+            }            
+          }
+          SwingUtilities invokeLater {
+            timeLinePanel.contents.insert(0, statusPanel)
+            timeLinePanel.repaint
+          }
         }
       }
-
-      // Following call is implictly converted to Runnable by functionToRunable
-      SwingUtilities invokeLater {
-        // Replace existing timeline
-        tlScrollPane.viewportView_=(timeLinePanel)
-      }
+//      SwingUtilities invokeLater timeLinePanel.repaint                
       // Stop progress bar
       if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
         progressbar.indeterminate_=(false)
@@ -528,3 +542,8 @@ class TlScrollPane extends ScrollPane{
   this.horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
   preferredSize = new Dimension(Main.mainFrameInitialWidth, Main.mainFrameInitialHeight)
 }
+
+class StatusPanel extends BorderPanel {
+  var status:Status = null
+}
+
