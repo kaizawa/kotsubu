@@ -26,8 +26,7 @@ import kotsubu._
  * Actor auto update thread
  */
 object UpdateDaemon extends {
-
-  val DEFAULT_WAITTIME:Int = 60000
+  
   def startDaemon() :Unit = {
     actor {
       def tlChecker(updatetype:UpdateType) {
@@ -45,7 +44,7 @@ object UpdateDaemon extends {
           // Start scheduled update          
           //println(updatetype.name + " waiting for " + waittime + " sec.")
           Thread.sleep(waittime * 1000)
-          updateActor ! updatetype          
+          updateActor ! updatetype
         }
       } 
 
