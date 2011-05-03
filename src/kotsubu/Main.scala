@@ -55,7 +55,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.13"  // version
+  val version = "0.1.14"  // version
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   var currentUpdateType = UpdateType("home") // default time line  
   val imageIconMap = mutable.Map.empty[String, javax.swing.ImageIcon]
@@ -243,7 +243,7 @@ object Main extends SimpleSwingApplication {
         case UpdateType("mention") => (Main.mentionTlScrollPane, twitter.getMentions())
       }
 
-      val timeLineList = new BoxPanel(Orientation.Vertical){
+      val timeLinePanel = new BoxPanel(Orientation.Vertical){
         background = Color.white
       }
       val simpleFormat = new SimpleDateFormat("MM/dd HH:mm")
@@ -390,7 +390,7 @@ object Main extends SimpleSwingApplication {
           });
 
         // Consolidate timeline and icon
-        val timeLine = new BorderPanel (){
+        val statusPanel = new BorderPanel (){
           background = Color.white
           import BorderPanel.Position._
           add(new BorderPanel (){
@@ -406,8 +406,8 @@ object Main extends SimpleSwingApplication {
               add(operationPanel, East)
             }, Center)
         }
-        timeLineList.contents += timeLine
-        timeLineList.contents += new Separator{
+        timeLinePanel.contents += statusPanel
+        timeLinePanel.contents += new Separator{
           background = Color.white
         }
       }
@@ -415,7 +415,7 @@ object Main extends SimpleSwingApplication {
       // Following call is implictly converted to Runnable by functionToRunable
       SwingUtilities invokeLater {
         // Replace existing timeline
-        tlScrollPane.viewportView_=(timeLineList)
+        tlScrollPane.viewportView_=(timeLinePanel)
       }
       // Stop progress bar
       if(prefs.getBoolean("progressBarEnabled",defProgressBarEnabled)){
