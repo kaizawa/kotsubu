@@ -27,19 +27,22 @@ import kotsubu._
  */
 object UpdateDaemon extends {
   
+  /*
+   * Start back ground threads for auto udpate
+   */
   def startDaemon() :Unit = {
     actor {
       def tlChecker(updatetype:UpdateType) {
         val updateActor = self
         actor {
           // stop thread if auto-update is disabled
-          if(Main.prefs.getBoolean("autoUpdateEnabled", Main.defAutoUpdateEnabled) == false){ return }
+          if(Prefs.getBoolean("autoUpdateEnabled") == false){ return }
 
           val waittime = updatetype match {
-            case UpdateType("home") => prefs.getInt("homeUpdateInterval", Main.defHomeUpdateInterval)
-            case UpdateType("user") => prefs.getInt("userUpdateInterval", Main.defUserUpdateInterval)
-            case UpdateType("public") => prefs.getInt("publicUpdateInterval", Main.defPublicUpdateInterval)
-            case UpdateType("mention") => prefs.getInt("mentionUpdateInterval", Main.defMentionUpdateInterval)  
+            case UpdateType("home") => Prefs.getInt("homeUpdateInterval")
+            case UpdateType("user") => Prefs.getInt("userUpdateInterval")
+            case UpdateType("public") => Prefs.getInt("publicUpdateInterval")
+            case UpdateType("mention") => Prefs.getInt("mentionUpdateInterval")
           }
           // Start scheduled update          
           //println(updatetype.name + " waiting for " + waittime + " sec.")
