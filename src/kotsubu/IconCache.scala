@@ -25,7 +25,7 @@ import scala.collection.mutable._
  * Object which store user icon cache
  */
 object IconCache {
-  val imageIconMap = Map.empty[String, javax.swing.ImageIcon]
+  val imageIconMap = Map.empty[String, (javax.swing.ImageIcon, Int)]
   
   /**
    * Get icons image
@@ -35,10 +35,14 @@ object IconCache {
    * TODO: icon cache mechanism is too bad..
    */  
   def getIcon(user:User): javax.swing.ImageIcon = {
-    imageIconMap get (user.getScreenName) match {
-      case Some(icon) => icon
+    val username = user.getScreenName    
+    imageIconMap get (username) match {
       case None => loadIconAndStore(user)
+      case _ =>
     }  
+    val taple = imageIconMap(username)
+    imageIconMap += (username -> (taple._1, taple._2 + 1))
+    return taple._1
   }
   /**
    * Add icons to Map 
@@ -47,10 +51,9 @@ object IconCache {
    *
    * TODO: icon cache mechanism is too bad..
    */
-  def loadIconAndStore(user:User) :javax.swing.ImageIcon = {
+  def loadIconAndStore(user:User) :Unit = {
     val username = user.getScreenName
     var originalImage:BufferedImage = null
-          
     try {
       // Read original icon stored in Twitter.      
       originalImage = javax.imageio.ImageIO.read(user.getProfileImageURL)
@@ -65,13 +68,25 @@ object IconCache {
         // Set size to 50x50        
       case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(Main.userIconSize,Main.userIconSize, java.awt.Image.SCALE_SMOOTH))
     }
-    // Clear all cached icon, if it exceed 500....
-    if(imageIconMap.size > 500){
-      println("Clear imageIconMap.")
-      imageIconMap.clear
+    // Remove less frequent used User, if it exceed max cache icons.
+    if(imageIconMap.size > Prefs.getInt("maxCacheIcons")){
+      val head = imageIconMap.head
+      val leastFrequentlyUsedUserName = getLFUUser(imageIconMap, head._1, head._2._2)
+      imageIconMap.remove(leastFrequentlyUsedUserName)
     }
     // Set icon as a label's icon.
-    imageIconMap += (username -> image)
-    return imageIconMap(username)
+    imageIconMap += (username -> (image, 0))
+  }
+  
+  def getLFUUser(map:Map[String, (javax.swing.ImageIcon, Int)], username:String, count:Int): String = {
+    if (map.isEmpty){
+      println(username + " is used only " + count +" times. Removing from cache...")
+      return username
+    }
+    
+    if (map.head._2._2 < count)
+      return getLFUUser(map.tail, map.head._1, map.head._2._2)
+    else 
+      return getLFUUser(map.tail, username, count)
   }
 }
