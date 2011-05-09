@@ -22,6 +22,7 @@ import scala.swing._
 import scala.swing.event._
 import scala.xml._
 import javax.swing.ImageIcon
+import javax.swing.JViewport
 import javax.swing.SwingUtilities
 import scala.actors._
 import scala.actors.Actor._
@@ -48,7 +49,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.15"  // version
+  val version = "0.1.16"  // version
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   var currentUpdateType = UpdateType("home") // default time line  
   val mainFrameInitialWidth = 600
@@ -242,19 +243,20 @@ object Main extends SimpleSwingApplication {
       )
 
       val newTimeLinePanel = new BoxPanel(Orientation.Vertical){background = Color.white }
-      statusPanelList foreach (newTimeLinePanel.contents + _)
+      statusPanelList foreach (newTimeLinePanel.contents.append(_))
       
+      // Check position of current viewport
+      val y = tlScrollPane.peer.getViewport.getViewPosition.y
+      // replace previous viewport with new one.       
       SwingUtilities invokeLater {
-        val curPos = tlScrollPane.peer.getViewport.getViewPosition
         newTimeLinePanel.visible_=(false) // don't show before changing position.
         tlScrollPane.viewportView_=(newTimeLinePanel)                
         val vp = tlScrollPane.peer.getViewport
         // Height of each statusPanels seems to be 89.
-        vp.setViewPosition(new Point(curPos.x, curPos.y + numNewStatus * 89))        
+        vp.setViewPosition(new Point(0, y + numNewStatus * 89))        
         newTimeLinePanel.visible_=(true)        
       }
       // Stop progress bar
-
       progressbar.indeterminate_=(false)
       progressbar.label_= (updateType.name + " timeline updated on "
                            + simpleFormat.format(new Date()))
@@ -264,6 +266,7 @@ object Main extends SimpleSwingApplication {
             println("Unable to get the access token.");
           }else{
             println("Updating " + updateType.name + " timeline failed.")
+            ex.printStackTrace
           }}}      
   }
 
