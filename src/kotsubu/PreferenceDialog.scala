@@ -36,10 +36,11 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
   val mentionUpdateIntervalTextField = new TextField (Prefs.getInt("mentionUpdateInterval").toString)  
   val publicUpdateIntervalTextField = new TextField (Prefs.getInt("publicUpdateInterval").toString)
   val maxStatusesTextField = new TextField (Prefs.getInt("maxStatuses").toString)
+  val maxCacheIconsTextField = new TextField (Prefs.getInt("maxCacheIcons").toString)
   val okButton = new Button ("OK")
   val cancelButton = new Button("Cancel")
   
-  val prefsPanel = new GridPanel (7, 2){
+  val prefsPanel = new GridPanel (8, 2){
     contents += new Label("Enable Progress Bar")
     contents += progressBarEnabledCheckBoxDialog
     contents += new Label("Enable AutoUpdate")
@@ -54,6 +55,8 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     contents += mentionUpdateIntervalTextField    
     contents += new Label("Num tweets: ")
     contents += maxStatusesTextField
+    contents += new Label("Num Cache Icons: ")
+    contents += maxCacheIconsTextField
   }
 
   contents= new BoxPanel (Orientation.Vertical){
@@ -89,6 +92,7 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     Prefs.putInt("mentionUpdateInterval", Integer.parseInt(mentionUpdateIntervalTextField.text))    
     Prefs.putBoolean("progressBarEnabled",progressBarEnabledCheckBoxDialog.selected)
     Prefs.putInt("maxStatuses", Integer.parseInt(maxStatusesTextField.text))
+    Prefs.putInt("maxCacheIcons", Integer.parseInt(maxCacheIconsTextField.text))    
 
     closeOperation
     dispose
