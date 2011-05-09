@@ -31,8 +31,6 @@ object IconCache {
    * Get icons image
    * @param user user entry.
    * @return stored icon
-   *
-   * TODO: icon cache mechanism is too bad..
    */  
   def getIcon(user:User): javax.swing.ImageIcon = {
     val username = user.getScreenName    
@@ -48,8 +46,6 @@ object IconCache {
    * Add icons to Map 
    * @param user user entry.
    * @return added icon
-   *
-   * TODO: icon cache mechanism is too bad..
    */
   def loadIconAndStore(user:User) :Unit = {
     val username = user.getScreenName
@@ -68,7 +64,7 @@ object IconCache {
         // Set size to 50x50        
       case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(Main.userIconSize,Main.userIconSize, java.awt.Image.SCALE_SMOOTH))
     }
-    // Remove less frequent used User, if it exceed max cache icons.
+    // Remove least frequently used User's icon, if max cache icons exceeds.
     if(imageIconMap.size > Prefs.getInt("maxCacheIcons")){
       val head = imageIconMap.head
       val leastFrequentlyUsedUserName = getLFUUser(imageIconMap, head._1, head._2._2)
@@ -80,10 +76,9 @@ object IconCache {
   
   def getLFUUser(map:Map[String, (javax.swing.ImageIcon, Int)], username:String, count:Int): String = {
     if (map.isEmpty){
-      println(username + " is used only " + count +" times. Removing from cache...")
+      //println(username + " is used only " + count +" times. Removing from cache...")
       return username
     }
-    
     if (map.head._2._2 < count)
       return getLFUUser(map.tail, map.head._1, map.head._2._2)
     else 
