@@ -25,6 +25,7 @@ import scala.collection.mutable._
  * Object which store user icon cache
  */
 object IconCache {
+  // Each cache entry consists of User name, Iconv image and Reference count.
   val imageIconMap = Map.empty[String, (javax.swing.ImageIcon, Int)]
   
   /**
@@ -39,6 +40,7 @@ object IconCache {
       case _ =>
     }  
     val taple = imageIconMap(username)
+    // Increment reference count
     imageIconMap += (username -> (taple._1, taple._2 + 1))
     return taple._1
   }
