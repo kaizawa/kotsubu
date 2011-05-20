@@ -49,7 +49,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.16"  // version
+  val version = "0.1.17"  // version
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   var currentUpdateType = UpdateType("home") // default time line  
   val mainFrameInitialWidth = 600
@@ -84,11 +84,11 @@ object Main extends SimpleSwingApplication {
 
   //////// Panel for post message  /////////
   val postButton = Button("Post ") {
-    postMessageAndClear(messageTextArea)    
+    postMessageAndClear(messageTextArea)   
   }
   val clearButton = Button("Clear") {
     SwingUtilities invokeLater {messageTextArea.text_=("")}
-  }
+  }    
   val postButtonPanel = new BoxPanel (Orientation.Vertical){
     contents += postButton
     contents += clearButton
@@ -195,7 +195,7 @@ object Main extends SimpleSwingApplication {
    * Updte timeline 
    * @param updateType Timeline type to be updated.
    */
-  def updateTimeLine(updateType:UpdateType) :Unit = {
+  def updateTimeLine(updateType:UpdateType) :Unit = {      
     try {
       // Start progress bar, if needed.
       if(Prefs.getBoolean("progressBarEnabled")){
@@ -248,14 +248,19 @@ object Main extends SimpleSwingApplication {
       // Check position of current viewport
       val y = tlScrollPane.peer.getViewport.getViewPosition.y
       // replace previous viewport with new one.       
-      SwingUtilities invokeLater {
-        newTimeLinePanel.visible_=(false) // don't show before changing position.
-        tlScrollPane.viewportView_=(newTimeLinePanel)                
-        val vp = tlScrollPane.peer.getViewport
-        // Height of each statusPanels seems to be 89.
-        vp.setViewPosition(new Point(0, y + numNewStatus * 89))        
-        newTimeLinePanel.visible_=(true)        
-      }
+      // I can not use implicit declaration here, because it caused method to be
+      // executed under other thread than EDT...I'm not sure how come it was..
+      SwingUtilities invokeLater ( new Runnable(){
+          def run = {
+            newTimeLinePanel.visible_=(false) // don't show before changing position.
+            tlScrollPane.viewportView_=(newTimeLinePanel)                
+            val vp = tlScrollPane.peer.getViewport
+            // Height of each statusPanels seems to be 89.
+            vp.setViewPosition(new Point(0, y + numNewStatus * 89))        
+            newTimeLinePanel.visible_=(true)        
+          }
+        }
+      )
       // Stop progress bar
       progressbar.indeterminate_=(false)
       progressbar.label_= (updateType.name + " timeline updated on "
