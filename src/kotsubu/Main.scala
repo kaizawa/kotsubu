@@ -49,7 +49,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.17"  // version
+  val version = "0.1.18"  // version
   val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
   var currentUpdateType = UpdateType("home") // default time line  
   val mainFrameInitialWidth = 600
@@ -256,7 +256,11 @@ object Main extends SimpleSwingApplication {
             tlScrollPane.viewportView_=(newTimeLinePanel)                
             val vp = tlScrollPane.peer.getViewport
             // Height of each statusPanels seems to be 89.
-            vp.setViewPosition(new Point(0, y + numNewStatus * 89))        
+            val newY = tlScrollPane.isFirstLoad match {
+              case true => {tlScrollPane.isFirstLoad_=(false); 0}
+              case false => y + numNewStatus * 89
+            }
+            vp.setViewPosition(new Point(0, newY))             
             newTimeLinePanel.visible_=(true)        
           }
         }
