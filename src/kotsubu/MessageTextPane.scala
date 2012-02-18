@@ -47,8 +47,8 @@ class MessageTextPane(status:Status, tlScrollPane:TlScrollPane) extends EditorPa
   text = sb.toString()
   // TODO: Consider the way of calculating height of timeline
   // -20 is not good way...
-  // preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
-  preferredSize = new Dimension(tlScrollPane.size.width - Main.userIconSize - Main.operationPanelWidth - 40, Main.timeLineInitialHeight)
+  //preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
+  preferredSize = new Dimension(tlScrollPane.size.width - Main.userIconSize - Main.operationPanelWidth - 50, Main.timeLineInitialHeight)
   peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
   peer.addHyperlinkListener(new HyperlinkListener() {
       def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {

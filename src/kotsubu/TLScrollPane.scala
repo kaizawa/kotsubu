@@ -20,5 +20,5 @@ class TlScrollPane extends ScrollPane{
   var isFirstLoad:Boolean = true
   background = Color.white
   this.horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-  preferredSize = new Dimension(Main.mainFrameInitialWidth -40, Main.mainFrameInitialHeight)
+  preferredSize = new Dimension(Main.mainFrameInitialWidth, Main.mainFrameInitialHeight)
 }
