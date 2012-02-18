@@ -15,6 +15,7 @@
  */
 package kotsubu
 
+import java.awt.Dimension
 import javax.swing.SwingUtilities
 import scala.swing.Button
 import scala.swing.GridPanel
@@ -60,7 +61,8 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
   contents += directMessageButton
   background_=(java.awt.Color.WHITE)
   border = Swing.EmptyBorder(0,0,5,0)
-  
+  preferredSize = new Dimension(Main.operationPanelWidth, Main.operationPanelWidth)
+
   /**
    * Function implictly convert function into Runnable.
    * This function is used by SingUtilities.invokeLater
