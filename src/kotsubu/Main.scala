@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * 
- * Changes: Post,Cancel,Update button to Actions model.
+ * Changes: 
+
+ 1) Remove pref variable, instead uses Prefs object.
+
  */
 
 package kotsubu
@@ -49,8 +52,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.18"  // version
-  val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
+  val version = "0.1.19"  // version
   var currentUpdateType = UpdateType("home") // default time line  
   val mainFrameInitialWidth = 600
   val mainFrameInitialHeight = 600
@@ -295,7 +297,7 @@ object Main extends SimpleSwingApplication {
       }
       progressbar.label_=("Posting message ...")
       
-      val accessToken:AccessToken = new AccessToken(prefs.get("accessToken", ""),prefs.get("accessTokenSecret", ""))
+      val accessToken:AccessToken = new AccessToken(Prefs.get("accessToken"),Prefs.get("accessTokenSecret"))
       val twitter:Twitter = TWFactory.getInstance
       val status = twitter.updateStatus(msg)
 
