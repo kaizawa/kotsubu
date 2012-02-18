@@ -52,8 +52,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val version = "0.1.21"  // version
-  val prefs:Preferences = Preferences.userNodeForPackage(this.getClass())
+  val version = "0.1.22"  // version
   var currentUpdateType = UpdateType("home") // default time line  
   val mainFrameInitialWidth = 600
   val mainFrameInitialHeight = 600
@@ -288,7 +287,7 @@ object Main extends SimpleSwingApplication {
    * @param tf TextField which has message to post.
    */
   def postMessageAndClear(tf:TextArea) :Unit ={
-    println("postMessageAcnClear called")
+    //println("postMessageAcnClear called")
     val msg = tf.text
     SwingUtilities invokeLater tf.text_=("")
     actor {
