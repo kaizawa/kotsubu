@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * 
- * Changes: Post,Cancel,Update button to Actions model.
+ * Changes: 
+
+ 1) Remove pref variable, instead uses Prefs object.
+
  */
 
 package kotsubu
@@ -285,7 +288,7 @@ object Main extends SimpleSwingApplication {
    * @param tf TextField which has message to post.
    */
   def postMessageAndClear(tf:TextArea) :Unit ={
-    //println("postMessageAcnClear called")
+    println("postMessageAcnClear called")
     val msg = tf.text
     SwingUtilities invokeLater tf.text_=("")
     actor {
@@ -295,7 +298,7 @@ object Main extends SimpleSwingApplication {
       }
       progressbar.label_=("Posting message ...")
       
-      val accessToken:AccessToken = new AccessToken(prefs.get("accessToken", ""),prefs.get("accessTokenSecret", ""))
+      val accessToken:AccessToken = new AccessToken(Prefs.get("accessToken"),Prefs.get("accessTokenSecret"))
       val twitter:Twitter = TWFactory.getInstance
       val status = twitter.updateStatus(msg)
 
