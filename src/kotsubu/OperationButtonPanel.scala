@@ -15,9 +15,8 @@
  */
 package kotsubu
 
-import java.awt.Dimension
+
 import java.awt.image.BufferedImage
-import java.io.File
 import javax.swing.SwingUtilities
 import scala.swing.Button
 import scala.swing.GridPanel
@@ -37,22 +36,22 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
   val username = user.getScreenName
 
   // ReTweet button
-  val retweetButton = new OperationButton {
+  val retweetButton = new Button {
     tooltip = "Official Retweet"
     icon = rtIcon
   }
   // Reply button
-  val replyButton = new OperationButton {
+  val replyButton = new Button {
     tooltip = " Reply "
     icon = replyIcon
   }
   // Direct Messge Button
-  val directMessageButton = new OperationButton {
+  val directMessageButton = new Button {
     tooltip = "Direct Message"
     icon = directIcon
   }
   // Official Retweet Button
-  val retweetWithCommentButton = new OperationButton {
+  val retweetWithCommentButton = new Button {
     tooltip = "Retweet with comments"
     icon = rtwcIcon
   }
@@ -96,6 +95,9 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
   }
   listenTo(replyButton, retweetButton, directMessageButton, retweetWithCommentButton)  
   
+  /**
+   * read icon image file from jar file
+   */
   def getImageIcon (path:String): javax.swing.ImageIcon = {
     val originalImage:BufferedImage = javax.imageio.ImageIO.read(
       getClass().getClassLoader().getResource(path))
@@ -103,12 +105,5 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
         Main.OPERATION_BUTTON_WIDTH,
         Main.OPERATION_BUTTON_WIDTH, 
         java.awt.Image.SCALE_SMOOTH))
-//    new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource(path)))
   }    
-  
-  class OperationButton extends Button {
-    override def preferredSize(): Dimension = {
-      return new Dimension(Main.OPERATION_BUTTON_WIDTH, Main.OPERATION_BUTTON_WIDTH)
-    }
-  }
 }

@@ -47,7 +47,6 @@ object UpdateDaemon extends {
             case UpdateType("mention") => Prefs.getInt("mentionUpdateInterval")
           }
           // Start scheduled update          
-          //println(updatetype.name + " waiting for " + waittime + " sec.")
           Thread.sleep(waittime * 1000)
           updateActor ! updatetype
         }

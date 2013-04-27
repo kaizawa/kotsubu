@@ -45,16 +45,6 @@ class MessageTextPane(status:Status, timeLineScrollPane:TimeLineScrollPane) exte
     sb.append(" ")
   }  
   text = sb.toString()
-  // TODO: Consider the way of calculating height of timeline
-  // -50 is not a good idea...
-/*
-  maximumSize_=(new Dimension(timeLineScrollPane.size.width
-                                - Main.USER_ICON_SIZE 
-                                - Main.OPERATION_PANEL_WIDTH
-                                - 100 
-                                , Main.TIMELINE_INITIAL_HEIGHT))
-    */
-
 
   peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
   peer.addHyperlinkListener(new HyperlinkListener() {

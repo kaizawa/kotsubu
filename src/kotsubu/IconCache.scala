@@ -63,9 +63,11 @@ object IconCache {
 
     val image:ImageIcon = originalImage match {
       // Use default icon, if original icon is not found.
-      case null => new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/default.png")))
+      case null => new javax.swing.ImageIcon(javax.imageio.ImageIO.read(
+            getClass().getClassLoader().getResource("kotsubu/default.png")))
         // Set size to 50x50        
-      case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(Main.USER_ICON_SIZE,Main.USER_ICON_SIZE, java.awt.Image.SCALE_SMOOTH))
+      case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(
+            Main.USER_ICON_SIZE,Main.USER_ICON_SIZE, java.awt.Image.SCALE_SMOOTH))
     }
     // Remove least frequently used User's icon, if max cache icons exceeds.
     if(imageIconMap.size > Prefs.getInt("maxCacheIcons")){
@@ -77,7 +79,9 @@ object IconCache {
     imageIconMap += (username -> (image, 0))
   }
   
-  def getLFUUser(map:Map[String, (javax.swing.ImageIcon, Int)], username:String, count:Int): String = {
+  def getLFUUser(
+    map:Map[String, (javax.swing.ImageIcon, Int)], username:String, count:Int): String  = 
+  {
     if (map.isEmpty){
       //println(username + " is used only " + count +" times. Removing from cache...")
       return username
