@@ -20,6 +20,7 @@ import java.awt.image.BufferedImage
 import twitter4j.User
 import javax.swing.ImageIcon
 import scala.collection.mutable._
+import java.net.URL
 
 /*
  * Object which store user icon cache
@@ -54,7 +55,7 @@ object IconCache {
     var originalImage:BufferedImage = null
     try {
       // Read original icon stored in Twitter.      
-      originalImage = javax.imageio.ImageIO.read(user.getProfileImageURL)
+      originalImage = javax.imageio.ImageIO.read(new URL(user.getOriginalProfileImageURL()))
     } catch {
       case ex: Exception => 
         println("Can't read icon from " + user.getProfileImageURL.toString + ". Use default icon.")
@@ -64,7 +65,7 @@ object IconCache {
       // Use default icon, if original icon is not found.
       case null => new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource("kotsubu/default.png")))
         // Set size to 50x50        
-      case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(Main.userIconSize,Main.userIconSize, java.awt.Image.SCALE_SMOOTH))
+      case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(Main.USER_ICON_SIZE,Main.USER_ICON_SIZE, java.awt.Image.SCALE_SMOOTH))
     }
     // Remove least frequently used User's icon, if max cache icons exceeds.
     if(imageIconMap.size > Prefs.getInt("maxCacheIcons")){

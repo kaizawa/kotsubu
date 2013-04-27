@@ -16,6 +16,8 @@
 package kotsubu
 
 import java.awt.Dimension
+import java.awt.image.BufferedImage
+import java.io.File
 import javax.swing.SwingUtilities
 import scala.swing.Button
 import scala.swing.GridPanel
@@ -23,6 +25,7 @@ import java.awt.Color
 import scala.swing.Swing
 import scala.swing.event.ButtonClicked
 import twitter4j.Status
+import scala.language.implicitConversions
 
 class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
   val replyIcon = getImageIcon("kotsubu/arrow_turn_left.png")
@@ -34,22 +37,22 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
   val username = user.getScreenName
 
   // ReTweet button
-  val retweetButton = new Button {
+  val retweetButton = new OperationButton {
     tooltip = "Official Retweet"
     icon = rtIcon
   }
   // Reply button
-  val replyButton = new Button {
+  val replyButton = new OperationButton {
     tooltip = " Reply "
     icon = replyIcon
   }
   // Direct Messge Button
-  val directMessageButton = new Button {
+  val directMessageButton = new OperationButton {
     tooltip = "Direct Message"
     icon = directIcon
   }
   // Official Retweet Button
-  val retweetWithCommentButton = new Button {
+  val retweetWithCommentButton = new OperationButton {
     tooltip = "Retweet with comments"
     icon = rtwcIcon
   }
@@ -61,8 +64,7 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
   contents += directMessageButton
   background_=(java.awt.Color.WHITE)
   border = Swing.EmptyBorder(0,0,5,0)
-  preferredSize = new Dimension(Main.operationPanelWidth, Main.operationPanelWidth)
-
+  
   /**
    * Function implictly convert function into Runnable.
    * This function is used by SingUtilities.invokeLater
@@ -82,8 +84,8 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
         scala.swing.Dialog.showConfirmation(title="Retweet", message="Are you sure you want to retweet?") match {
           case Result.Yes => {
               try {
-                TWFactory.getInstance.retweetStatus(status.getId)
-              } catch { case _ =>}
+                KotsubuTwitterFactory.getInstance.retweetStatus(status.getId)
+              } catch { case _ : Throwable => }
             }
           case _ => 
         }
@@ -95,6 +97,18 @@ class OperationButtonPanel(status:Status) extends GridPanel(2,2) {
   listenTo(replyButton, retweetButton, directMessageButton, retweetWithCommentButton)  
   
   def getImageIcon (path:String): javax.swing.ImageIcon = {
-    new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource(path)))
+    val originalImage:BufferedImage = javax.imageio.ImageIO.read(
+      getClass().getClassLoader().getResource(path))
+    new javax.swing.ImageIcon(originalImage.getScaledInstance(
+        Main.OPERATION_BUTTON_WIDTH,
+        Main.OPERATION_BUTTON_WIDTH, 
+        java.awt.Image.SCALE_SMOOTH))
+//    new javax.swing.ImageIcon(javax.imageio.ImageIO.read(getClass().getClassLoader().getResource(path)))
+  }    
+  
+  class OperationButton extends Button {
+    override def preferredSize(): Dimension = {
+      return new Dimension(Main.OPERATION_BUTTON_WIDTH, Main.OPERATION_BUTTON_WIDTH)
+    }
   }
 }

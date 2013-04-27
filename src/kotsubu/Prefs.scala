@@ -26,7 +26,6 @@ object Prefs {
   val intPrefDefaultMap  = Map ( 
     "homeUpdateInterval" -> 30, // Default interval of auto-update
     "userUpdateInterval" -> 300, // Default interval of auto-update
-    "publicUpdateInterval" -> 300, // Default interval of auto-update
     "mentionUpdateInterval" -> 120, // Default interval of auto-update  
     "maxStatuses" -> 100, // Number of tweets to be shown.
     "corePoolSize" -> 6, // NUmber of Threads used for actor

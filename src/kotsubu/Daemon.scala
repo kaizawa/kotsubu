@@ -19,6 +19,10 @@ package kotsubu
 import scala.actors.Actor._
 import kotsubu.Main._
 import kotsubu._
+import twitter4j.Status
+import twitter4j.TwitterStream
+import twitter4j.UserStreamListener
+import scala.collection.immutable._
 
 /**
  * kotsubu - Twitter Client
@@ -32,16 +36,14 @@ object UpdateDaemon extends {
    */
   def startDaemon() :Unit = {
     actor {
-      def tlChecker(updatetype:UpdateType) {
+      def timeLineChecker(updatetype:UpdateType) {
         val updateActor = self
         actor {
           // stop thread if auto-update is disabled
           if(Prefs.getBoolean("autoUpdateEnabled") == false){ return }
 
           val waittime = updatetype match {
-            case UpdateType("home") => Prefs.getInt("homeUpdateInterval")
             case UpdateType("user") => Prefs.getInt("userUpdateInterval")
-            case UpdateType("public") => Prefs.getInt("publicUpdateInterval")
             case UpdateType("mention") => Prefs.getInt("mentionUpdateInterval")
           }
           // Start scheduled update          
@@ -52,9 +54,9 @@ object UpdateDaemon extends {
       } 
 
       // Start scheduled update      
-      List("home", "user", "public", "mention") map {tl => {
+      List("user", "mention") map {tl => {
           updateTimeLine(UpdateType(tl))
-          tlChecker(UpdateType(tl))
+          timeLineChecker(UpdateType(tl))
         }
       }
       
@@ -62,7 +64,7 @@ object UpdateDaemon extends {
         react {
           case updatetype:UpdateType => {
               updateTimeLine(updatetype)     
-              tlChecker(updatetype)
+              timeLineChecker(updatetype)
             }
         }
       }

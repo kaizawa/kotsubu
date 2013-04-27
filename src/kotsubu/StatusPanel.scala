@@ -17,6 +17,7 @@
 package kotsubu
 
 import java.awt.Color
+import java.awt.Dimension
 import scala.swing.BorderPanel
 import scala.swing.Label
 import scala.swing.Separator
@@ -24,18 +25,23 @@ import scala.swing.Swing
 import twitter4j.Status
 
 /**
- * Panec corresponding to each tweet.
+ * Panel corresponding to each tweet.
  * @param tlScrollPane ScrollPane of TimeLine
  * @param status status of tweet
  */
-class StatusPanel(tlScrollPane:TlScrollPane, val status:Status) extends BorderPanel {
+class StatusPanel(tlScrollPane:TimeLineScrollPane, val status:Status) extends BorderPanel {
   // Icon. Load from server, if it is not cached yet.
   val user = status.getUser
   val iconLabel = new Label{ icon = IconCache.getIcon(user) }  
   val statusInfoPanel = new StatusInfoPanel(status)
-  val messageTextPane = new MessageTextPane(status, tlScrollPane:TlScrollPane)
+  val messageTextPane = new MessageTextPane(status, tlScrollPane:TimeLineScrollPane)
   val operationPanel = new OperationButtonPanel(status)
   
+  
+  preferredSize_=( new Dimension(Main.MAIN_FRAME_INITIAL_WIDTH - 60, 
+                                Main.TIMELINE_INITIAL_HEIGHT))
+  maximumSize_=( new Dimension(Integer.MAX_VALUE, Main.TIMELINE_INITIAL_HEIGHT))
+
   background = Color.white
   import BorderPanel.Position._
   add(new BorderPanel (){
@@ -50,5 +56,6 @@ class StatusPanel(tlScrollPane:TlScrollPane, val status:Status) extends BorderPa
       add(messageTextPane, Center)
       add(operationPanel, East)
     }, Center)
-  add(new Separator{background = Color.white}, South)  
+  add(
+    new Separator{background = Color.white}, South)  
 }
