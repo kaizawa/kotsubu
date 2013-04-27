@@ -22,7 +22,6 @@ package kotsubu
 import java.awt.Color
 import java.awt.Desktop
 import java.net.URI
-import java.text.SimpleDateFormat
 import javax.swing.JEditorPane
 import javax.swing.event.HyperlinkEvent
 import javax.swing.event.HyperlinkListener
@@ -30,14 +29,13 @@ import scala.swing.BorderPanel
 import scala.swing.EditorPane
 import scala.swing.TextArea
 import twitter4j.Status
-import twitter4j.User
 
 class StatusInfoPanel(status:Status) extends BorderPanel {
   val user = status.getUser
   val username = user.getScreenName
   // Create link to user's page
   val sbname:StringBuffer = new StringBuffer
-  sbname.append("<B><a href=\"" + Main.friendsPage + username + "\">" + username + "</a> " + user.getName + "</B>")
+  sbname.append("<B><a href=\"" + Main.FRIEND_PAGE + username + "\">" + username + "</a> " + user.getName + "</B>")
   val usernameTextPane = new EditorPane(){
     background = Color.white
     contentType = ("text/html")        
@@ -57,5 +55,5 @@ class StatusInfoPanel(status:Status) extends BorderPanel {
   import BorderPanel.Position._
   background = Color.white
   add(usernameTextPane, West)
-  add(new TextArea(Main.simpleFormat.format(createdDate)), East)  
+  add(new TextArea(Main.SIMPLE_FORMAT.format(createdDate)), East)  
 }

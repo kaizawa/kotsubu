@@ -16,7 +16,7 @@ import javax.swing.event.HyperlinkListener
 import scala.swing.EditorPane
 import twitter4j.Status
 
-class MessageTextPane(status:Status, tlScrollPane:TlScrollPane) extends EditorPane {
+class MessageTextPane(status:Status, timeLineScrollPane:TimeLineScrollPane) extends EditorPane {
   background = Color.white
   contentType = "text/html"
   editable = false
@@ -38,17 +38,14 @@ class MessageTextPane(status:Status, tlScrollPane:TlScrollPane) extends EditorPa
         =>  {sb.append("<a href=\"" + protocol + "://" + url + "\">"
                        + protocol + "://" + url + "</a>")}
       case namefilter(name)
-        => {sb.append("<a href=\"" + Main.friendsPage + name + "\">@" + name + "</a>")}
+        => {sb.append("<a href=\"" + Main.FRIEND_PAGE + name + "\">@" + name + "</a>")}
       case word => {sb.append(word)}
         //TODO: make it handle Full-Width space char
     }
     sb.append(" ")
   }  
   text = sb.toString()
-  // TODO: Consider the way of calculating height of timeline
-  // -20 is not good way...
-  // preferredSize = new Dimension(tlScrollPane.size.width - iconLabel.size.width - operationPanel.size.width, timeLineInitialHeight)
-  preferredSize = new Dimension(tlScrollPane.size.width - Main.userIconSize - Main.operationPanelWidth - 50, Main.timeLineInitialHeight)
+
   peer.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
   peer.addHyperlinkListener(new HyperlinkListener() {
       def hyperlinkUpdate(e:HyperlinkEvent) :Unit = {

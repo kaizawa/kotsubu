@@ -34,7 +34,6 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
   val homeUpdateIntervalTextField = new TextField (Prefs.getInt("homeUpdateInterval").toString)
   val userUpdateIntervalTextField = new TextField (Prefs.getInt("userUpdateInterval").toString)
   val mentionUpdateIntervalTextField = new TextField (Prefs.getInt("mentionUpdateInterval").toString)  
-  val publicUpdateIntervalTextField = new TextField (Prefs.getInt("publicUpdateInterval").toString)
   val maxStatusesTextField = new TextField (Prefs.getInt("maxStatuses").toString)
   val maxCacheIconsTextField = new TextField (Prefs.getInt("maxCacheIcons").toString)
   val okButton = new Button ("OK")
@@ -49,8 +48,6 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     contents += homeUpdateIntervalTextField
     contents += new Label("My TL interval(sec): ")
     contents += userUpdateIntervalTextField
-    contents += new Label("Public TL interval(sec): ")
-    contents += publicUpdateIntervalTextField
     contents += new Label("Mention TL interval(sec): ")
     contents += mentionUpdateIntervalTextField    
     contents += new Label("Num tweets: ")
@@ -88,7 +85,6 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     Prefs.putBoolean("autoUpdateEnabled", autoUpdateCheckBox.selected)
     Prefs.putInt("homeUpdateInterval", Integer.parseInt(homeUpdateIntervalTextField.text))
     Prefs.putInt("userUpdateInterval", Integer.parseInt(userUpdateIntervalTextField.text))
-    Prefs.putInt("publicUpdateInterval", Integer.parseInt(publicUpdateIntervalTextField.text))
     Prefs.putInt("mentionUpdateInterval", Integer.parseInt(mentionUpdateIntervalTextField.text))    
     Prefs.putBoolean("progressBarEnabled",progressBarEnabledCheckBoxDialog.selected)
     Prefs.putInt("maxStatuses", Integer.parseInt(maxStatusesTextField.text))
@@ -108,6 +104,5 @@ class PreferencesDialog()  extends scala.swing.Dialog() {
     close
   }
 
-//  size = new Dimension(400,250)
   this.resizable_=(false)
 }

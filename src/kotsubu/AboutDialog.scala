@@ -113,8 +113,6 @@ class AboutDialog(version:String)  extends scala.swing.Dialog() {
     dispose
     close
   }
-
-  //size = new Dimension(510,410)
   this.resizable_=(false)
 }
 
