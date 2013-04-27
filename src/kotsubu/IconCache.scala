@@ -52,23 +52,26 @@ object IconCache {
    */
   def loadIconAndStore(user:User) :Unit = {
     val username = user.getScreenName
-    var originalImage:BufferedImage = null
+    
+    val image:ImageIcon = 
     try {
       // Read original icon stored in Twitter.      
-      originalImage = javax.imageio.ImageIO.read(new URL(user.getOriginalProfileImageURL()))
-    } catch {
-      case ex: Exception => 
-        println("Can't read icon from " + user.getProfileImageURL.toString + ". Use default icon.")
-    }
-
-    val image:ImageIcon = originalImage match {
-      // Use default icon, if original icon is not found.
-      case null => new javax.swing.ImageIcon(javax.imageio.ImageIO.read(
-            getClass().getClassLoader().getResource("kotsubu/default.png")))
+      javax.imageio.ImageIO.read(new URL(user.getOriginalProfileImageURL())) match {
+        // Use default icon, if original icon is not found.
+        case null => new javax.swing.ImageIcon(javax.imageio.ImageIO.read(
+              getClass().getClassLoader().getResource("kotsubu/default.png")))
         // Set size to 50x50        
-      case _ => new javax.swing.ImageIcon(originalImage.getScaledInstance(
-            Main.USER_ICON_SIZE,Main.USER_ICON_SIZE, java.awt.Image.SCALE_SMOOTH))
-    }
+        case originalImage:BufferedImage => new javax.swing.ImageIcon(
+            originalImage.getScaledInstance(
+              Main.USER_ICON_SIZE,Main.USER_ICON_SIZE, java.awt.Image.SCALE_SMOOTH))
+      }
+    } catch {
+      case ex: Exception => {
+        println("Can't read icon from " + user.getProfileImageURL.toString + ". Use default icon.")
+        null
+      }
+    } 
+    
     // Remove least frequently used User's icon, if max cache icons exceeds.
     if(imageIconMap.size > Prefs.getInt("maxCacheIcons")){
       val head = imageIconMap.head

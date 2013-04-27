@@ -13,11 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * 
- * Changes: 
-
- 1) Remove pref variable, instead uses Prefs object.
- 2) 
-
  */
 
 package kotsubu
@@ -52,7 +47,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val VERSION = "1.0.0"  // version
+  val VERSION = "1.2.0"  // version
   var currentUpdateType = UpdateType("home") // default time line  
   val MAIN_FRAME_INITIAL_WIDTH = 600
   val MAIN_FRAME_INITIAL_HEIGHT = 600
@@ -300,14 +295,9 @@ object Main extends SimpleSwingApplication {
           new StatusPanel (timeLineScrollPane, _)
         }) 
       val numNewStatus = newStatusPanelList.length
-      var cnt:Int = 0
       // Concatinate old and new statuses      
       // and shorten to meet maxStatuses      
-      val statusPanelList = newStatusPanelList ::: oldStatusPanelList takeWhile( _ => {
-          cnt = cnt + 1                  
-          cnt <= Prefs.getInt("maxStatuses")
-        }
-      )
+      val statusPanelList = newStatusPanelList ::: oldStatusPanelList take Prefs.getInt("maxStatuses")
 
       val newTimeLinePanel = new BoxPanel(Orientation.Vertical){background = Color.white }
       statusPanelList foreach (newTimeLinePanel.contents.append(_))
@@ -323,10 +313,10 @@ object Main extends SimpleSwingApplication {
             newTimeLinePanel.visible_=(false) 
             timeLineScrollPane.viewportView_=(newTimeLinePanel)                
             val vp = timeLineScrollPane.peer.getViewport
-            // Height of each statusPanels seems to be 89.
-            val newY = timeLineScrollPane.isFirstLoad match {
-              case true => {timeLineScrollPane.isFirstLoad_=(false); 0}
-              case false => y + numNewStatus * 89
+            // Height of each statusPanels seems to be TIMELINE_INITIAL_HEIGHT(previously 89).
+            val newY = timeLineScrollPane.contents.size match {
+              case 0 => 0
+              case _ => y + numNewStatus * TIMELINE_INITIAL_HEIGHT
             }
             vp.setViewPosition(new Point(0, newY))             
             newTimeLinePanel.visible_=(true)        
@@ -355,7 +345,6 @@ object Main extends SimpleSwingApplication {
   def postMessageAndClear(tf:TextArea) :Unit ={
     //println("postMessageAcnClear called")
     val msg = tf.text
-    var statusCode:Int = 0;
     
     SwingUtilities invokeLater tf.text_=("")
     actor {
@@ -368,10 +357,10 @@ object Main extends SimpleSwingApplication {
       val accessToken:AccessToken = 
         new AccessToken(Prefs.get("accessToken"),Prefs.get("accessTokenSecret"))
       val twitter:Twitter = KotsubuTwitterFactory.getInstance
-      try { 
-        val status = twitter.updateStatus(msg)
+      val status = try { 
+        twitter.updateStatus(msg)
       }  catch {
-        case ex:TwitterException => statusCode = ex.getStatusCode
+        case ex:TwitterException => null
       } 
 
       // Stop progress bar
@@ -379,12 +368,12 @@ object Main extends SimpleSwingApplication {
         progressbar.indeterminate_=(false)
       }
       
-      statusCode match {
-        case 0 => {
+      status match {
+        case null => progressbar.label_=("Post failed.")        
+        case _ => {
             progressbar.label_=("Message posted")
             actor(updateTimeLine(currentUpdateType))
           }
-        case _ => progressbar.label_=("Post failed. StatusCode=" + statusCode )
       }
     }
   }  
