@@ -18,13 +18,13 @@ import twitter4j.auth.RequestToken
  * factory class for Twitter
  */
 object KotsubuTwitterFactory {
+  /* Setup Twitter instance */    
+  val twitter:Twitter = TwitterFactory.getSingleton
 
   /* Get Access Token */  
   val accessToken:AccessToken = getAccessToken()        
 
-  /* Setup Twitter instance */
-  val twitter:Twitter = TwitterFactory.getSingleton
-  twitter.setOAuthConsumer(Prefs.get("OAuthConsumerKey"), Prefs.get("consumerSecret"))  
+  /* Set AccessToken */
   twitter.setOAuthAccessToken(accessToken)   
 
   /* Setup TwitterStream instance */
