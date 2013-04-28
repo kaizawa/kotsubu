@@ -20,6 +20,7 @@ import twitter4j.auth.RequestToken
 object KotsubuTwitterFactory {
   /* Setup Twitter instance */    
   val twitter:Twitter = TwitterFactory.getSingleton
+  twitter.setOAuthConsumer(Prefs.get("OAuthConsumerKey"), Prefs.get("consumerSecret"));    
 
   /* Get Access Token */  
   val accessToken:AccessToken = getAccessToken()        
@@ -49,11 +50,10 @@ object KotsubuTwitterFactory {
    */
   private def getAccessToken(): AccessToken = {
     if(Prefs.get("accessToken").isEmpty) {   
-      twitter.setOAuthConsumer(Prefs.get("OAuthConsumerKey"), Prefs.get("consumerSecret"));
       val requestToken:RequestToken  = twitter.getOAuthRequestToken()
       
       Desktop.getDesktop().browse(new URI(requestToken.getAuthorizationURL()))
-      return scala.swing.Dialog.showInput(
+      val accessToken:AccessToken = scala.swing.Dialog.showInput(
         title="Input PIN", 
         message="Copy and past PIN Number",
         initial="",
@@ -71,6 +71,7 @@ object KotsubuTwitterFactory {
       }
       Prefs.put("accessToken", accessToken.getToken)
       Prefs.put("accessTokenSecret", accessToken.getTokenSecret) 
+      return accessToken
     }
     return new AccessToken(Prefs.get("accessToken"),Prefs.get("accessTokenSecret"))
   }
