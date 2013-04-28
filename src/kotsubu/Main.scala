@@ -47,7 +47,7 @@ case class UpdateType(name:String)
  * Main Window
  */
 object Main extends SimpleSwingApplication {
-  val VERSION = "1.2.0"  // version
+  val VERSION = "1.4.0"  // version
   var currentUpdateType = UpdateType("home") // default time line  
   val MAIN_FRAME_INITIAL_WIDTH = 600
   val MAIN_FRAME_INITIAL_HEIGHT = 600
